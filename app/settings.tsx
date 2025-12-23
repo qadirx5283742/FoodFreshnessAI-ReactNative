@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,8 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { registerForPushNotificationsAsync, scheduleLocalNotification } from '../services/NotificationService';
+
+import { HapticService } from '../services/HapticService';
 
 const SETTINGS_KEY = '@app_settings';
 
@@ -47,11 +49,13 @@ export default function SettingsScreen() {
     if (key === 'notificationsEnabled') {
       setNotificationsEnabled(value);
       if (value) {
-        // Request permissions if enabling
         await registerForPushNotificationsAsync();
       }
     }
     if (key === 'hapticFeedback') setHapticFeedback(value);
+
+    // Provide immediate haptic feedback for the toggle itself
+    HapticService.selection();
 
     try {
       const savedSettings = await AsyncStorage.getItem(SETTINGS_KEY);
@@ -64,6 +68,7 @@ export default function SettingsScreen() {
   };
 
   const handleTestNotification = async () => {
+    HapticService.notification();
     await scheduleLocalNotification(
       "Test Notification 🍎",
       "FoodFreshnessAI notification system is working perfectly!"
@@ -98,7 +103,7 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>

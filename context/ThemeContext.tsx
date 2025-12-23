@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { Colors, ThemeType } from '../constants/Colors';
+import { HapticService } from '../services/HapticService';
 
 interface ThemeContextType {
   theme: ThemeType;
@@ -38,6 +39,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   const setTheme = async (newTheme: ThemeType) => {
     setThemeState(newTheme);
+    HapticService.selection();
     try {
       await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
     } catch (error) {

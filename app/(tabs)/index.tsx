@@ -1,14 +1,19 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   FlatList,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import { Query } from 'react-native-appwrite';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { APPWRITE_CONFIG, databases, storage } from '../../config/appwriteConfig';
+import { auth } from '../../config/firebaseConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -20,27 +25,75 @@ const SUGGESTED_ITEMS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [recentScans, setRecentScans] = useState<any[]>([]);
+  const [lastScan, setLastScan] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { colors, isDark } = useTheme();
 
-  const renderItem = ({ item }: { item: typeof SUGGESTED_ITEMS[0] }) => (
+  const fetchRecentScans = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const response = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.scansCollectionId,
+        [
+          Query.equal('userId', auth.currentUser.uid),
+          Query.orderDesc('scannedAt'),
+          Query.limit(5)
+        ]
+      );
+      setRecentScans(response.documents);
+      if (response.documents.length > 0) {
+        setLastScan(response.documents[0]);
+      }
+    } catch (error) {
+      console.error("Dashboard Fetch Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentScans();
+  }, []);
+
+  const getImageUrl = (imageId: string) => {
+    try {
+      return storage.getFilePreview(APPWRITE_CONFIG.bucketId, imageId).toString();
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={[styles.itemCard, { backgroundColor: colors.surface }]}
       onPress={() => router.push({
         pathname: '/product-details',
-        params: { name: item.name, freshness: item.freshness, icon: item.icon }
+        params: { 
+          id: item.$id,
+          name: item.itemName, 
+          farm: item.farm || 'Unknown',
+          freshness: item.freshnessScore, 
+          imageId: item.imageId 
+        }
       })}
     >
-      <View style={[styles.itemIconContainer, { backgroundColor: item.color + '20' }]}>
-        <MaterialCommunityIcons name={item.icon as any} size={40} color={isDark ? colors.primary : item.color} />
+      <View style={styles.itemIconContainer}>
+        <Image 
+          source={{ uri: getImageUrl(item.imageId) }}
+          style={styles.recentImage}
+          contentFit="cover"
+        />
       </View>
-      <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
-      <Text style={[styles.itemFreshness, { color: isDark ? colors.primary : item.color }]}>{item.freshness} fresh</Text>
+      <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>{item.itemName}</Text>
+      <Text style={[styles.itemFreshness, { color: colors.primary }]}>{item.freshnessScore} fresh</Text>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -61,11 +114,17 @@ export default function Dashboard() {
         {/* Freshness Card */}
         <View style={[styles.freshnessCard, { backgroundColor: colors.surface }]}>
           <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="apple" size={24} color="#FF9800" />
-            <Text style={[styles.cardHeaderText, { color: colors.textSecondary }]}>Today's Freshness Level</Text>
+            <MaterialCommunityIcons name="lightning-bolt" size={24} color="#FFD700" />
+            <Text style={[styles.cardHeaderText, { color: colors.textSecondary }]}>
+              {lastScan ? 'Last Scan Freshness' : 'Start Analyzing'}
+            </Text>
           </View>
-          <Text style={[styles.freshnessValue, { color: colors.primary }]}>94%</Text>
-          <Text style={[styles.freshnessStatus, { color: colors.textSecondary }]}>Excellent condition</Text>
+          <Text style={[styles.freshnessValue, { color: colors.primary }]}>
+            {lastScan ? lastScan.freshnessScore : '--'}
+          </Text>
+          <Text style={[styles.freshnessStatus, { color: colors.textSecondary }]}>
+            {lastScan ? `Scanned: ${lastScan.itemName}` : 'Take your first photo'}
+          </Text>
         </View>
 
         {/* Scan Button */}
@@ -74,18 +133,24 @@ export default function Dashboard() {
           <Text style={styles.scanButtonText}>Scan Now</Text>
         </TouchableOpacity>
 
-        {/* Suggested Items */}
+        {/* Recent Scans */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Suggested Items</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Scans</Text>
+          <TouchableOpacity onPress={() => router.push('/list')}>
+            <Text style={{ color: colors.primary, fontWeight: '600' }}>View All</Text>
+          </TouchableOpacity>
         </View>
 
         <FlatList
-          data={SUGGESTED_ITEMS}
+          data={recentScans}
           renderItem={renderItem}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.$id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.itemsList}
+          ListEmptyComponent={
+            <Text style={{ color: colors.textSecondary, marginTop: 10 }}>No scans yet. Try scanning a fruit!</Text>
+          }
         />
       </ScrollView>
     </SafeAreaView>
@@ -194,20 +259,29 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   itemIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 110,
+    height: 110,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+  },
+  recentImage: {
+    width: '100%',
+    height: '100%',
   },
   itemName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    textAlign: 'center',
+    width: '100%',
   },
   itemFreshness: {
     fontSize: 14,
     fontWeight: '500',
+    textAlign: 'center',
   },
 });

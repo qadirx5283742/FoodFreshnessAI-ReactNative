@@ -1,13 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { APPWRITE_CONFIG, storage } from '../config/appwriteConfig';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProductDetailsScreen() {
@@ -15,19 +17,27 @@ export default function ProductDetailsScreen() {
   const params = useLocalSearchParams();
   const { colors, isDark } = useTheme();
 
+  const getImageUrl = (imageId: string) => {
+    try {
+      return storage.getFilePreview(APPWRITE_CONFIG.bucketId, imageId).toString();
+    } catch (error) {
+      return '';
+    }
+  };
+
   // Mock data for display - in a real app, you'd fetch this based on product ID
   const product = {
-    name: params.name || 'Apple',
-    farm: params.farm || 'Fresh Farm',
-    freshness: params.freshness || '95%',
+    name: (params.name as string) || 'Apple',
+    farm: (params.farm as string) || 'Fresh Farm',
+    freshness: (params.freshness as string) || '95%',
     expiryDate: '2025-12-12',
     description: 'Crisp and juicy, packed with vitamins. Great for a healthy snack or adding to salads.',
     nutrition: 'Calories: 52, Carbs: 14g, Fiber: 2.4g',
-    icon: params.icon || 'apple',
+    imageId: params.imageId as string,
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <View style={[styles.header, { backgroundColor: colors.primary }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
@@ -37,10 +47,18 @@ export default function ProductDetailsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={[styles.imageContainer, { backgroundColor: isDark ? colors.surface : '#F9F9F9' }]}>
-          {/* Placeholder for real image */}
-          <View style={styles.placeholderImage}>
-             <MaterialCommunityIcons name={product.icon as any} size={150} color={colors.primary} />
-          </View>
+          {product.imageId ? (
+            <Image 
+              source={{ uri: getImageUrl(product.imageId) }}
+              style={styles.fullImage}
+              contentFit="cover"
+              transition={300}
+            />
+          ) : (
+            <View style={styles.placeholderImage}>
+               <MaterialCommunityIcons name="image-off" size={100} color={colors.primary + '40'} />
+            </View>
+          )}
         </View>
 
         <View style={styles.infoSection}>
@@ -86,7 +104,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 45, // Account for status bar
     paddingBottom: 15,
   },
   backButton: {
@@ -101,9 +118,14 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   imageContainer: {
-    height: 250,
+    height: 300,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
   },
   placeholderImage: {
     width: 200,

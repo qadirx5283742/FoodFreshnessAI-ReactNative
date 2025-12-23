@@ -7,6 +7,7 @@ import {
   TouchableOpacityProps
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { HapticService } from '../services/HapticService';
 
 interface CustomButtonProps extends TouchableOpacityProps {
   title: string;
@@ -17,15 +18,22 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
   title, 
   loading, 
   style, 
+  onPress,
   ...props 
 }) => {
   const { colors } = useTheme();
+
+  const handlePress = (e: any) => {
+    HapticService.trigger();
+    if (onPress) onPress(e);
+  };
 
   return (
     <TouchableOpacity 
       style={[styles.button, { backgroundColor: colors.primary, shadowColor: colors.primary }, style]} 
       disabled={loading}
       activeOpacity={0.8}
+      onPress={handlePress}
       {...props}
     >
       {loading ? (

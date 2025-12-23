@@ -46,12 +46,18 @@ function RootLayoutNav() {
   );
 }
 
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+// ... previous code ...
+
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <RootLayoutNav />
-      </ThemeProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <RootLayoutNav />
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

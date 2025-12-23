@@ -6,6 +6,8 @@ import {
   updateProfile
 } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { ID, Query } from 'react-native-appwrite';
+import { APPWRITE_CONFIG, databases } from '../config/appwriteConfig';
 import { auth } from '../config/firebaseConfig';
 
 interface User {
@@ -61,11 +63,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, fullName: string, pass: string) => {
     setIsLoading(true);
     try {
+      // 1. Create Firebase User
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(userCredential.user, { displayName: fullName });
+      const firebaseUser = userCredential.user;
+
+      // 2. Set Firebase Display Name
+      await updateProfile(firebaseUser, { displayName: fullName });
+
+      // 3. Create Document in Appwrite
+      try {
+        await databases.createDocument(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.usersCollectionId,
+          ID.unique(),
+          {
+            userId: firebaseUser.uid,
+            email: email,
+            fullName: fullName,
+            $createdAt: new Date().toISOString(),
+          }
+        );
+      } catch (appwriteError) {
+        console.error("Appwrite DB Error (Signup):", appwriteError);
+        // Note: We don't throw here if Firebase succeeded, but in a real app you might want to rollback.
+      }
+
       setUser({
-        id: userCredential.user.uid,
-        email: userCredential.user.email || '',
+        id: firebaseUser.uid,
+        email: email,
         fullName: fullName,
       });
     } catch (error: any) {
@@ -80,9 +105,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!auth.currentUser) return;
     
     try {
+      // 1. Update Firebase Profile
       await updateProfile(auth.currentUser, { displayName: fullName });
       
-      // Update local state immediately for real-time UI refresh
+      // 2. Update Appwrite Document
+      try {
+        const userId = auth.currentUser.uid;
+        const response = await databases.listDocuments(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.usersCollectionId,
+          [Query.equal('userId', userId)]
+        );
+
+        if (response.documents.length > 0) {
+          await databases.updateDocument(
+            APPWRITE_CONFIG.databaseId,
+            APPWRITE_CONFIG.usersCollectionId,
+            response.documents[0].$id,
+            { fullName: fullName }
+          );
+        }
+      } catch (appwriteError) {
+        console.error("Appwrite DB Error (Update):", appwriteError);
+      }
+      
       setUser(prev => prev ? { ...prev, fullName } : null);
     } catch (error: any) {
       console.error("Update Profile Error:", error.message);
