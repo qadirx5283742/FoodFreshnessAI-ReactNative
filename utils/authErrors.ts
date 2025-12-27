@@ -2,31 +2,31 @@ export const getAuthErrorMessage = (errorCode: string): string => {
   switch (errorCode) {
     // Login Errors
     case 'auth/invalid-email':
-      return 'Email address galat format mein hai.';
+      return 'The email address is in an invalid format.';
     case 'auth/user-disabled':
-      return 'Ye account disable kar diya gaya hai.';
+      return 'This account has been disabled.';
     case 'auth/user-not-found':
-      return 'Is email se koi account nahi mila. Pehle Sign Up karein.';
+      return 'No account found with this email. Please sign up first.';
     case 'auth/wrong-password':
-      return 'Password galat hai. Dobara koshish karein.';
+      return 'Incorrect password. Please try again.';
     case 'auth/invalid-credential':
-      return 'Email ya password galat hai.';
+      return 'Invalid email or password.';
     
     // Registration Errors
     case 'auth/email-already-in-use':
-      return 'Ye email pehle se register hai. Login karein.';
+      return 'This email is already registered. Please login.';
     case 'auth/operation-not-allowed':
-      return 'Email/Password sign-in enable nahi hai.';
+      return 'Email/Password sign-in is not enabled.';
     case 'auth/weak-password':
-      return 'Password kam se kam 6 characters ka hona chahiye.';
+      return 'Password must be at least 6 characters long.';
     
     // General Errors
     case 'auth/network-request-failed':
-      return 'Internet ka masla hai. Connection check karein.';
+      return 'Network connection issue. Please check your internet connection.';
     case 'auth/too-many-requests':
-      return 'Bohat zyada koshish kar li gayi hai. Kuch dair baad try karein.';
+      return 'Too many unsuccessful attempts. Please try again later.';
     
     default:
-      return 'Kuch galat ho gaya. Dobara koshish karein.';
+      return 'Something went wrong. Please try again.';
   }
 };

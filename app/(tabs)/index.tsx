@@ -1,21 +1,18 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    FlatList,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APPWRITE_CONFIG, databases, storage } from '../../config/appwriteConfig';
-import { auth } from '../../config/firebaseConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import DatabaseService, { DatabaseScan } from '../../services/DatabaseService';
 
 const SUGGESTED_ITEMS = [
   { id: '1', name: 'Avocado', freshness: '95%', color: '#4CAF50', icon: 'avocado' },
@@ -25,27 +22,23 @@ const SUGGESTED_ITEMS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [recentScans, setRecentScans] = useState<any[]>([]);
-  const [lastScan, setLastScan] = useState<any>(null);
+  const [recentScans, setRecentScans] = useState<DatabaseScan[]>([]);
+  const [lastScan, setLastScan] = useState<DatabaseScan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { colors, isDark } = useTheme();
 
   const fetchRecentScans = async () => {
-    if (!auth.currentUser) return;
     try {
-      const response = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.scansCollectionId,
-        [
-          Query.equal('userId', auth.currentUser.uid),
-          Query.orderDesc('scannedAt'),
-          Query.limit(5)
-        ]
-      );
-      setRecentScans(response.documents);
-      if (response.documents.length > 0) {
-        setLastScan(response.documents[0]);
+      if (!user) {
+        setRecentScans([]);
+        return;
+      }
+      const allScans = await DatabaseService.getAllScans(user.id);
+      const recent = allScans.slice(0, 5);
+      setRecentScans(recent);
+      if (recent.length > 0) {
+        setLastScan(recent[0]);
       }
     } catch (error) {
       console.error("Dashboard Fetch Error:", error);
@@ -58,13 +51,7 @@ export default function Dashboard() {
     fetchRecentScans();
   }, []);
 
-  const getImageUrl = (imageId: string) => {
-    try {
-      return storage.getFilePreview(APPWRITE_CONFIG.bucketId, imageId).toString();
-    } catch (error) {
-      return '';
-    }
-  };
+
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
@@ -72,20 +59,23 @@ export default function Dashboard() {
       onPress={() => router.push({
         pathname: '/product-details',
         params: { 
-          id: item.$id,
+          id: String(item.id),
           name: item.itemName, 
           farm: item.farm || 'Unknown',
-          freshness: item.freshnessScore, 
-          imageId: item.imageId 
+          freshness: item.freshnessScore,
+          icon: item.icon || 'food',
+          scannedAt: item.scannedAt,
+          shelfLifeDays: item.shelfLifeDays || 0,
+          imageUri: item.imageUri
         }
       })}
     >
       <View style={styles.itemIconContainer}>
-        <Image 
-          source={{ uri: getImageUrl(item.imageId) }}
-          style={styles.recentImage}
-          contentFit="cover"
-        />
+         <MaterialCommunityIcons 
+            name={item.icon || 'food-apple'} 
+            size={50} 
+            color={colors.primary} 
+         />
       </View>
       <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>{item.itemName}</Text>
       <Text style={[styles.itemFreshness, { color: colors.primary }]}>{item.freshnessScore} fresh</Text>
@@ -144,7 +134,7 @@ export default function Dashboard() {
         <FlatList
           data={recentScans}
           renderItem={renderItem}
-          keyExtractor={item => item.$id}
+          keyExtractor={item => String(item.id)}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.itemsList}

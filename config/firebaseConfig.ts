@@ -4,13 +4,13 @@ import { initializeApp } from "firebase/app";
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDDcy3f47YOFTm5Irknp1fyM-P80eDWudk",
-  authDomain: "fruitfreshnessai-reactnative.firebaseapp.com",
-  projectId: "fruitfreshnessai-reactnative",
-  storageBucket: "fruitfreshnessai-reactnative.firebasestorage.app",
-  messagingSenderId: "51386529168",
-  appId: "1:51386529168:web:fed35d0b5701460b79ef15",
-  measurementId: "G-3L6G8QP8WP"
+  apiKey: "AIzaSyACXBnUm4wwk4hEKWkDsi-GYmQGXjSUi3E",
+  authDomain: "foodfreshnessai-reactnative.firebaseapp.com",
+  projectId: "foodfreshnessai-reactnative",
+  storageBucket: "foodfreshnessai-reactnative.firebasestorage.app",
+  messagingSenderId: "959084930434",
+  appId: "1:959084930434:web:1aaf8b21a53f5a40929b9b",
+  measurementId: "G-YF22VW491X"
 };
 
 const app = initializeApp(firebaseConfig);

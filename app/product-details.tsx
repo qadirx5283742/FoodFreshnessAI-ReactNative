@@ -1,15 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image as RNImage,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APPWRITE_CONFIG, storage } from '../config/appwriteConfig';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProductDetailsScreen() {
@@ -17,23 +16,37 @@ export default function ProductDetailsScreen() {
   const params = useLocalSearchParams();
   const { colors, isDark } = useTheme();
 
-  const getImageUrl = (imageId: string) => {
-    try {
-      return storage.getFilePreview(APPWRITE_CONFIG.bucketId, imageId).toString();
-    } catch (error) {
-      return '';
-    }
-  };
 
-  // Mock data for display - in a real app, you'd fetch this based on product ID
+
+  // Calculate Expiry
+  const scannedDate = params.scannedAt ? new Date(params.scannedAt as string) : new Date();
+  const expiryDate = new Date(scannedDate);
+  
+  // Derive shelf life from freshness score percentage (e.g., "95%" -> 3 days)
+  const freshnessStr = (params.freshness as string) || "0%";
+  const freshnessPercentage = parseInt(freshnessStr.replace('%', '')) / 100;
+  
+  let shelfLife = 0;
+  if (freshnessPercentage >= 0.90) shelfLife = 3;
+  else if (freshnessPercentage >= 0.75) shelfLife = 2;
+  else if (freshnessPercentage >= 0.65) shelfLife = 1;
+
+  expiryDate.setDate(scannedDate.getDate() + shelfLife);
+  const formattedExpiry = expiryDate.toISOString().split('T')[0];
+
+  // If shelfLife is 0, it means it's already spoiled/expired
+  const isExpired = shelfLife <= 0;
+
   const product = {
     name: (params.name as string) || 'Apple',
     farm: (params.farm as string) || 'Fresh Farm',
     freshness: (params.freshness as string) || '95%',
-    expiryDate: '2025-12-12',
-    description: 'Crisp and juicy, packed with vitamins. Great for a healthy snack or adding to salads.',
-    nutrition: 'Calories: 52, Carbs: 14g, Fiber: 2.4g',
-    imageId: params.imageId as string,
+    expiryDate: formattedExpiry,
+    description: isExpired 
+      ? "Spoiled. Best consumed right now" 
+      : "Fresh and healthy food item. Best consumed while fresh.",
+    imageId: params.imageId as string, // Kept for type safety though likely unused
+    icon: (params.icon as string) || 'food-apple',
   };
 
   return (
@@ -47,18 +60,11 @@ export default function ProductDetailsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={[styles.imageContainer, { backgroundColor: isDark ? colors.surface : '#F9F9F9' }]}>
-          {product.imageId ? (
-            <Image 
-              source={{ uri: getImageUrl(product.imageId) }}
-              style={styles.fullImage}
-              contentFit="cover"
-              transition={300}
-            />
-          ) : (
-            <View style={styles.placeholderImage}>
-               <MaterialCommunityIcons name="image-off" size={100} color={colors.primary + '40'} />
-            </View>
-          )}
+          <RNImage 
+            source={{ uri: params.imageUri as string }} 
+            style={styles.fullImage}
+            resizeMode="cover"
+          />
         </View>
 
         <View style={styles.infoSection}>
@@ -70,9 +76,11 @@ export default function ProductDetailsScreen() {
                <MaterialCommunityIcons name="leaf" size={16} color="white" />
                <Text style={styles.badgeText}>{product.freshness} Fresh</Text>
             </View>
-            <View style={[styles.badge, styles.expiredBadge, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-               <MaterialCommunityIcons name="calendar-clock" size={16} color={colors.primary} />
-               <Text style={[styles.badgeText, { color: colors.primary }]}>Expired</Text>
+            <View style={[styles.badge, isExpired ? styles.expiredBadge : { borderRadius: 20 }, { backgroundColor: isExpired ? colors.error : colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
+               <MaterialCommunityIcons name={isExpired ? "alert-circle" : "calendar-clock"} size={16} color={isExpired ? "white" : colors.primary} />
+               <Text style={[styles.badgeText, { color: isExpired ? "white" : colors.primary }]}>
+                 {isExpired ? 'Expired' : `${shelfLife} Day${shelfLife > 1 ? 's' : ''} Left`}
+               </Text>
             </View>
           </View>
 
@@ -86,10 +94,7 @@ export default function ProductDetailsScreen() {
             <Text style={[styles.groupContent, { color: colors.textSecondary }]}>{product.description}</Text>
           </View>
 
-          <View style={styles.detailsGroup}>
-            <Text style={[styles.groupTitle, { color: isDark ? colors.primary : '#2E7D32' }]}>Nutrition Facts</Text>
-            <Text style={[styles.groupContent, { color: colors.textSecondary }]}>{product.nutrition}</Text>
-          </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -46,18 +46,19 @@ function RootLayoutNav() {
   );
 }
 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
-// ... previous code ...
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <ThemeProvider>
-          <RootLayoutNav />
-        </ThemeProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <RootLayoutNav />
+          </ThemeProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,44 +1,40 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    FlatList,
+    Image as RNImage,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APPWRITE_CONFIG, databases, storage } from '../../config/appwriteConfig';
-import { auth } from '../../config/firebaseConfig';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import DatabaseService, { DatabaseScan } from '../../services/DatabaseService';
 
 export default function HistoryScreen() {
-  const [scans, setScans] = useState<any[]>([]);
+  const [scans, setScans] = useState<DatabaseScan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
 
   const fetchScans = async (showLoading = true) => {
-    if (!auth.currentUser) return;
     if (showLoading) setIsLoading(true);
 
     try {
-      const response = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.scansCollectionId,
-        [
-          Query.equal('userId', auth.currentUser.uid),
-          Query.orderDesc('scannedAt')
-        ]
-      );
-      setScans(response.documents);
+      if (!user) {
+        setScans([]);
+        return;
+      }
+      const localScans = await DatabaseService.getAllScans(user.id);
+      setScans(localScans);
     } catch (error) {
       console.error("Fetch Scans Error:", error);
     } finally {
@@ -56,13 +52,7 @@ export default function HistoryScreen() {
     fetchScans(false);
   };
 
-  const getImageUrl = (imageId: string) => {
-    try {
-      return storage.getFilePreview(APPWRITE_CONFIG.bucketId, imageId).toString();
-    } catch (error) {
-      return '';
-    }
-  };
+
 
   const renderProductItem = ({ item }: any) => (
     <TouchableOpacity 
@@ -70,22 +60,24 @@ export default function HistoryScreen() {
       onPress={() => router.push({
         pathname: '/product-details',
         params: { 
-          id: item.$id,
+          id: String(item.id),
           name: item.itemName, 
           farm: item.farm || 'Unknown', 
           freshness: item.freshnessScore, 
-          imageId: item.imageId 
+          icon: item.icon || 'food-apple',
+          scannedAt: item.scannedAt,
+          shelfLifeDays: item.shelfLifeDays || 0,
+          imageUri: item.imageUri
         }
       })}
     >
       <View style={styles.cardContent}>
         <View style={[styles.iconContainer, { backgroundColor: colors.iconBackground }]}>
-            <Image 
-              source={{ uri: getImageUrl(item.imageId) }}
-              style={styles.productImage}
-              contentFit="cover"
-              transition={200}
-            />
+          <RNImage 
+            source={{ uri: item.imageUri }} 
+            style={styles.productImage}
+            resizeMode="cover"
+          />
         </View>
         <View style={styles.infoContainer}>
           <Text style={[styles.productName, { color: colors.primary }]}>{item.itemName}</Text>
@@ -138,7 +130,7 @@ export default function HistoryScreen() {
       <FlatList
         data={scans.filter(p => p.itemName.toLowerCase().includes(searchQuery.toLowerCase()))}
         renderItem={renderProductItem}
-        keyExtractor={item => item.$id}
+        keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
