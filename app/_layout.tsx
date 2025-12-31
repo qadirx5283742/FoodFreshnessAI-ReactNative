@@ -1,8 +1,24 @@
-import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
+import * as Notifications from "expo-notifications";
+import {
+  Stack,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { registerForPushNotificationsAsync } from "../services/NotificationService";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
@@ -18,14 +34,14 @@ function RootLayoutNav() {
       registerForPushNotificationsAsync();
     }
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = segments[0] === "(auth)";
 
     if (!user && !inAuthGroup) {
       // Redirect to login if not authenticated
-      router.replace('/(auth)/login');
+      router.replace("/(auth)/login");
     } else if (user && inAuthGroup) {
       // Redirect to dashboard if authenticated
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     }
   }, [user, isLoading, segments, navigationState]);
 
@@ -46,7 +62,7 @@ function RootLayoutNav() {
   );
 }
 
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {

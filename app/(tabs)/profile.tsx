@@ -1,17 +1,23 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import DatabaseService from "@/services/DatabaseService";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { File, Paths } from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function ProfileScreen() {
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { colors, isDark } = useTheme();
@@ -21,68 +27,176 @@ export default function ProfileScreen() {
     return (
       <TouchableOpacity style={styles.optionRow} onPress={onPress}>
         <View style={styles.optionLeft}>
-          <View style={[styles.iconWrapper, { backgroundColor: iconColor + '15' }]}>
+          <View
+            style={[styles.iconWrapper, { backgroundColor: iconColor + "15" }]}
+          >
             <MaterialCommunityIcons name={icon} size={22} color={iconColor} />
           </View>
-          <Text style={[styles.optionLabel, { color: colors.text }]}>{label}</Text>
+          <Text style={[styles.optionLabel, { color: colors.text }]}>
+            {label}
+          </Text>
         </View>
-        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={24}
+          color={colors.textSecondary}
+        />
       </TouchableOpacity>
     );
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfileImage = async () => {
+        if (user) {
+          const savedUri = await DatabaseService.getProfileImage(user.id);
+          if (savedUri) setProfileImage(savedUri);
+        }
+      };
+      loadProfileImage();
+    }, [user])
+  );
+  const handlePickImage = async () => {
+    try {
+      // MediaTypeOptions deprecated hai, 'MediaType' use karna better hai agar chal raha ho,
+      // lekin main focus FileSystem par hai.
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Isko ImagePicker.MediaType.Images karna chahiye future me
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+      if (!result.canceled && user) {
+        const sourceUri = result.assets[0].uri;
+        const fileName = sourceUri.split("/").pop() || "profile.jpg";
+        // [NEW API USAGE]
+        const sourceFile = new File(sourceUri);
+        const destinationFile = new File(Paths.document, fileName); // Paths.document is the new documentDirectory
+        console.log("Source URI:", sourceUri);
+        console.log("Destination URI:", destinationFile.uri);
+        try {
+          // New way to copy
+          await sourceFile.copy(destinationFile);
+
+          const newPath = destinationFile.uri; // Get URI string from object
+          await DatabaseService.saveProfileImage(user.id, newPath);
+          setProfileImage(newPath);
+        } catch (copyError) {
+          console.error("Error saving image:", copyError);
+        }
+      }
+    } catch (e) {
+      console.error("Error picking/saving image:", e);
+    }
+  };
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={[styles.headerCard, { backgroundColor: colors.surface }]}>
           <View style={styles.avatarContainer}>
             <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <MaterialCommunityIcons name="account" size={60} color="white" />
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={{ width: "100%", height: "100%", borderRadius: 50 }}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name="account"
+                  size={60}
+                  color="white"
+                />
+              )}
             </View>
-            <TouchableOpacity style={[styles.editAvatarBtn, { backgroundColor: isDark ? colors.primary : '#2E7D32' }]}>
+            <TouchableOpacity
+              style={[
+                styles.editAvatarBtn,
+                { backgroundColor: isDark ? colors.primary : "#2E7D32" },
+              ]}
+              onPress={handlePickImage}
+            >
               <MaterialCommunityIcons name="camera" size={18} color="white" />
             </TouchableOpacity>
           </View>
-          <Text style={[styles.userName, { color: isDark ? colors.primary : '#1B5E20' }]}>{user?.fullName || 'Guest User'}</Text>
-          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email || 'guest@example.com'}</Text>
-          <TouchableOpacity 
-            style={[styles.editProfileBadge, { backgroundColor: colors.primary + '15' }]}
-            onPress={() => router.push('/edit-profile')}
+          <Text
+            style={[
+              styles.userName,
+              { color: isDark ? colors.primary : "#1B5E20" },
+            ]}
           >
-            <Text style={[styles.editProfileText, { color: colors.primary }]}>Edit Profile</Text>
+            {user?.fullName || "Guest User"}
+          </Text>
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+            {user?.email || "guest@example.com"}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.editProfileBadge,
+              { backgroundColor: colors.primary + "15" },
+            ]}
+            onPress={() => router.push("/edit-profile")}
+          >
+            <Text style={[styles.editProfileText, { color: colors.primary }]}>
+              Edit Profile
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
-          <View style={[styles.optionsCard, { backgroundColor: colors.surface }]}>
-            <ProfileOption 
-              icon="account-edit-outline" 
-              label="Personal Info" 
-              onPress={() => router.push('/edit-profile')}
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            Account
+          </Text>
+          <View
+            style={[styles.optionsCard, { backgroundColor: colors.surface }]}
+          >
+            <ProfileOption
+              icon="account-edit-outline"
+              label="Personal Info"
+              onPress={() => router.push("/edit-profile")}
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>App</Text>
-          <View style={[styles.optionsCard, { backgroundColor: colors.surface }]}>
-            <ProfileOption 
-              icon="cog-outline" 
-              label="Settings" 
-              onPress={() => router.push('/settings')}
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            App
+          </Text>
+          <View
+            style={[styles.optionsCard, { backgroundColor: colors.surface }]}
+          >
+            <ProfileOption
+              icon="cog-outline"
+              label="Settings"
+              onPress={() => router.push("/settings")}
             />
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <ProfileOption 
-              icon="information-outline" 
-              label="About App" 
-              onPress={() => router.push('/about')}
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
+            <ProfileOption
+              icon="information-outline"
+              label="About App"
+              onPress={() => router.push("/about")}
             />
           </View>
         </View>
 
-        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: '#FF5252' }]} onPress={signOut}>
-          <MaterialCommunityIcons name="logout" size={22} color="white" style={{ marginRight: 10 }} />
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: "#FF5252" }]}
+          onPress={signOut}
+        >
+          <MaterialCommunityIcons
+            name="logout"
+            size={22}
+            color="white"
+            style={{ marginRight: 10 }}
+          />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -101,45 +215,45 @@ const styles = StyleSheet.create({
   headerCard: {
     borderRadius: 24,
     padding: 30,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 25,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 20,
     elevation: 5,
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 15,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
   },
   editAvatarBtn: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
     width: 34,
     height: 34,
     borderRadius: 17,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
-    borderColor: 'white',
+    borderColor: "white",
   },
   userName: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 4,
   },
   userEmail: {
@@ -153,70 +267,70 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   section: {
     marginBottom: 25,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 12,
     marginLeft: 5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 1,
   },
   optionsCard: {
     borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
     elevation: 3,
   },
   optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
   },
   optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   optionLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   divider: {
     height: 1,
     marginHorizontal: 16,
   },
   logoutButton: {
-    flexDirection: 'row',
+    flexDirection: "row",
     height: 60,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
   logoutText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

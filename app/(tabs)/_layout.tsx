@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { useTheme } from '../../context/ThemeContext';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function TabLayout() {
   const { colors } = useTheme();
@@ -22,31 +22,54 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="home-outline" size={28} color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="home-outline"
+              size={28}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="list"
         options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="format-list-bulleted" size={28} color={color} />,
+          title: "History",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="format-list-bulleted"
+              size={28}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="scan"
+        name="notifications" // [CHANGED] scan -> notifications
         options={{
-          title: 'Scan',
+          title: "Notifications", // [CHANGED]
           tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="scan-helper" size={28} color={color} />
+            <MaterialCommunityIcons
+              name="bell-outline"
+              size={28}
+              color={color}
+            /> // [CHANGED] Icon
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="account-outline" size={28} color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="account-outline"
+              size={28}
+              color={color}
+            />
+          ),
         }}
       />
     </Tabs>

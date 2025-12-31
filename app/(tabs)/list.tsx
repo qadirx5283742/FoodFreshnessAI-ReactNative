@@ -1,26 +1,27 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-    FlatList,
-    Image as RNImage,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import DatabaseService, { DatabaseScan } from '../../services/DatabaseService';
+  Alert,
+  FlatList,
+  Image as RNImage,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import DatabaseService, { DatabaseScan } from "../../services/DatabaseService";
 
 export default function HistoryScreen() {
   const [scans, setScans] = useState<DatabaseScan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
@@ -52,53 +53,115 @@ export default function HistoryScreen() {
     fetchScans(false);
   };
 
-
+  const handleDelete = (id: number, name: string) => {
+    Alert.alert("Delete Product", `Are you sure you want to delete ${name}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          if (user) {
+            await DatabaseService.deleteScan(id, user.id);
+            // List ko refresh karein taake item hat jaye
+            fetchScans(false);
+          }
+        },
+      },
+    ]);
+  };
 
   const renderProductItem = ({ item }: any) => (
-    <TouchableOpacity 
-      style={[styles.card, { backgroundColor: colors.card }]}
-      onPress={() => router.push({
-        pathname: '/product-details',
-        params: { 
-          id: String(item.id),
-          name: item.itemName, 
-          farm: item.farm || 'Unknown', 
-          freshness: item.freshnessScore, 
-          icon: item.icon || 'food-apple',
-          scannedAt: item.scannedAt,
-          shelfLifeDays: item.shelfLifeDays || 0,
-          imageUri: item.imageUri
+    <View style={[styles.card, { backgroundColor: colors.card }]}>
+      {/* Main Click Area */}
+      <TouchableOpacity
+        style={styles.cardMain}
+        onPress={() =>
+          router.push({
+            pathname: "/product-details",
+            params: {
+              id: String(item.id),
+              // ... baaki params same
+              name: item.itemName,
+              farm: item.farm || "Unknown",
+              freshness: item.freshnessScore,
+              icon: item.icon || "food-apple",
+              scannedAt: item.scannedAt,
+              shelfLifeDays: item.shelfLifeDays || 0,
+              imageUri: item.imageUri,
+            },
+          })
         }
-      })}
-    >
-      <View style={styles.cardContent}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.iconBackground }]}>
-          <RNImage 
-            source={{ uri: item.imageUri }} 
-            style={styles.productImage}
-            resizeMode="cover"
-          />
+      >
+        <View style={styles.cardContent}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: colors.iconBackground },
+            ]}
+          >
+            <RNImage
+              source={{ uri: item.imageUri }}
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          </View>
+          <View style={styles.infoContainer}>
+            <Text style={[styles.productName, { color: colors.primary }]}>
+              {item.itemName}
+            </Text>
+            <Text style={[styles.farmName, { color: colors.textSecondary }]}>
+              {item.farm || "Unknown"}
+            </Text>
+            <Text
+              style={[styles.freshnessText, { color: colors.textSecondary }]}
+            >
+              Status:{" "}
+              <Text
+                style={[
+                  styles.freshnessValue,
+                  {
+                    color:
+                      parseInt(item.freshnessScore) < 40
+                        ? "#FF5252"
+                        : colors.primary,
+                  },
+                ]}
+              >
+                {parseInt(item.freshnessScore) < 40
+                  ? "Spoiled"
+                  : `${item.freshnessScore} Fresh`}
+              </Text>
+            </Text>
+          </View>
         </View>
-        <View style={styles.infoContainer}>
-          <Text style={[styles.productName, { color: colors.primary }]}>{item.itemName}</Text>
-          <Text style={[styles.farmName, { color: colors.textSecondary }]}>{item.farm || 'Unknown'}</Text>
-          <Text style={[styles.freshnessText, { color: colors.textSecondary }]}>Freshness: <Text style={[styles.freshnessValue, { color: colors.primary }]}>{item.freshnessScore}</Text></Text>
-        </View>
-        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textSecondary} />
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+
+      {/* Delete Button */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDelete(item.id, item.itemName)}
+      >
+        <MaterialCommunityIcons
+          name="trash-can-outline"
+          size={24}
+          color="#FF5252"
+        />
+      </TouchableOpacity>
+    </View>
   );
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
       <MaterialCommunityIcons name="history" size={80} color={colors.border} />
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Scans Yet</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+        No Scans Yet
+      </Text>
       <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
         Capture your first fruit scan to see the history here.
       </Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.scanPromptButton, { backgroundColor: colors.primary }]}
-        onPress={() => router.push('/scan')}
+        onPress={() => router.push("../scan")}
       >
         <Text style={styles.scanPromptText}>Start Scanning</Text>
       </TouchableOpacity>
@@ -106,17 +169,31 @@ export default function HistoryScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.primary }]}>Products</Text>
-        <TouchableOpacity onPress={() => router.push('/scan')}>
-          <MaterialCommunityIcons name="scan-helper" size={28} color={colors.primary} />
+        <Text style={[styles.headerTitle, { color: colors.primary }]}>
+          Products
+        </Text>
+        <TouchableOpacity onPress={() => router.push("../scan")}>
+          <MaterialCommunityIcons
+            name="scan-helper"
+            size={28}
+            color={colors.primary}
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, { backgroundColor: colors.surface }]}>
-          <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={colors.textSecondary}
+            style={styles.searchIcon}
+          />
           <TextInput
             placeholder="Search product..."
             style={[styles.searchInput, { color: colors.text }]}
@@ -128,13 +205,19 @@ export default function HistoryScreen() {
       </View>
 
       <FlatList
-        data={scans.filter(p => p.itemName.toLowerCase().includes(searchQuery.toLowerCase()))}
+        data={scans.filter((p) =>
+          p.itemName.toLowerCase().includes(searchQuery.toLowerCase())
+        )}
         renderItem={renderProductItem}
-        keyExtractor={item => String(item.id)}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+          />
         }
         ListEmptyComponent={!isLoading ? <EmptyState /> : null}
       />
@@ -147,27 +230,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   searchContainer: {
     paddingHorizontal: 20,
     marginBottom: 15,
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 50,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -186,24 +269,25 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 15,
-    padding: 15,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+    flexDirection: "row", // [NEW] Row layout for delete button
+    overflow: "hidden", // [NEW]
   },
   cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconContainer: {
     width: 60,
     height: 60,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   infoContainer: {
@@ -211,7 +295,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 2,
   },
   farmName: {
@@ -222,29 +306,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   freshnessValue: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   productImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 10,
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 60,
     paddingHorizontal: 40,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: "800",
     marginTop: 20,
     marginBottom: 10,
   },
   emptySubtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: 30,
   },
@@ -254,8 +338,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   scanPromptText: {
-    color: 'white',
-    fontWeight: '700',
+    color: "white",
+    fontWeight: "700",
     fontSize: 16,
+  },
+  // 'card' style me se padding hatakar wrapper banaye
+  cardMain: {
+    flex: 1,
+    padding: 15, // Padding yahan move ki
+  },
+  deleteButton: {
+    width: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 82, 82, 0.1)",
   },
 });

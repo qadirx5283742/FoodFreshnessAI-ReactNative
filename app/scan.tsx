@@ -3,25 +3,25 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "../../context/AuthContext";
-import { useTheme } from "../../context/ThemeContext";
-import DatabaseService from "../../services/DatabaseService";
-import { HapticService } from "../../services/HapticService";
-import StorageService from "../../services/StorageService";
-import TfliteService from "../../services/TfliteService";
-
+import { useAuth } from "./../context/AuthContext";
+import { useTheme } from "./../context/ThemeContext";
+import DatabaseService from "./../services/DatabaseService";
+import { HapticService } from "./../services/HapticService";
+import StorageService from "./../services/StorageService";
+import TfliteService from "./../services/TfliteService";
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<"back" | "front">("back");
+  const [flash, setFlash] = useState<"on" | "off">("off"); // [NEW] Flash state
   const [isScanning, setIsScanning] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
@@ -72,10 +72,15 @@ export default function ScanScreen() {
     setFacing((current) => (current === "back" ? "front" : "back"));
   }
 
+  function toggleFlash() {
+    HapticService.selection();
+    setFlash((current) => (current === "off" ? "on" : "off"));
+  }
+
   const handleCapture = async () => {
-    console.log('--- CAPTURE BUTTON PRESSED ---');
+    console.log("--- CAPTURE BUTTON PRESSED ---");
     if (!cameraRef.current || isScanning) {
-      console.log('Capture aborted: camera not ready or already scanning');
+      console.log("Capture aborted: camera not ready or already scanning");
       return;
     }
 
@@ -84,67 +89,73 @@ export default function ScanScreen() {
       HapticService.trigger();
 
       // 1. Take Picture
-      console.log('Taking picture...');
+      console.log("Taking picture...");
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.7,
         base64: false,
       });
 
       if (!photo) throw new Error("Could not capture photo");
-      console.log('Picture taken. URI:', photo.uri);
+      console.log("Picture taken. URI:", photo.uri);
 
       // 2. Save Image locally (Permanent storage)
-      console.log('Saving image to local storage...');
+      console.log("Saving image to local storage...");
       const permanentImageUri = await StorageService.saveImage(photo.uri);
-      console.log('Image saved at:', permanentImageUri);
+      console.log("Image saved at:", permanentImageUri);
 
       // 3. AI Analysis with On-Device TFLite
-      console.log('Calling TFLite analysis...');
+      console.log("Calling TFLite analysis...");
       const analysisResult = await TfliteService.analyzeImage(photo.uri);
-      console.log('Analysis result received:', analysisResult);
-      
+      console.log("Analysis result received:", analysisResult);
+
       // Calculate results based on user selection and model score (LOWER IS FRESHER)
       const rawScore = analysisResult.confidence;
-      console.log('Raw Score to use (Lower=Fresher):', rawScore);
-      
-      // Invert score for UI display: 0.05 becomes 95% fresh
-      const freshnessPercentage = Math.max(0, Math.min(100, Math.round((1 - rawScore) * 100)));
-      
+      console.log("Raw Score to use (Lower=Fresher):", rawScore);
+
+      // Invert score for UI display:
+      // 0 (Best) -> 95%
+      // 1 (Worst) -> 11%
+      // Linear Interpolation: y = 95 - 84x
+      const freshnessPercentage = Math.max(
+        0,
+        Math.min(100, Math.round(95 - 84 * rawScore))
+      );
+
       // Corrected Logic Thresholds (from Python script)
-      let status = 'Spoiled';
+      let status = "Spoiled";
       let shelfLifeDays = 0;
 
-      if (rawScore < 0.10) {
-        status = 'Fresh';
+      if (rawScore < 0.1) {
+        status = "Fresh";
         shelfLifeDays = 3;
       } else if (rawScore < 0.25) {
-        status = 'Fresh';
+        status = "Fresh";
         shelfLifeDays = 2;
       } else if (rawScore < 0.35) {
-        status = 'Fresh'; // Medium Fresh
+        status = "Fresh"; // Medium Fresh
         shelfLifeDays = 1;
       } else {
-        status = 'Spoiled';
+        status = "Spoiled";
         shelfLifeDays = 0;
       }
 
       const result = {
-        itemName: 'Food Item',
+        itemName: "Food Item",
         freshnessScore: `${freshnessPercentage}%`,
         status: status,
         shelfLifeDays: shelfLifeDays,
-        farm: 'Local Analysis',
-        icon: 'food',
-        imageUri: permanentImageUri
+        farm: "Local Analysis",
+        icon: "food",
+        imageUri: permanentImageUri,
       };
 
       // 4. Save Scan to SQLite Database
-      console.log('Saving scan to SQLite...');
-      
+      console.log("Saving scan to SQLite...");
+
       if (!user) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
       }
-      
+
       await DatabaseService.addScan({
         userId: user.id,
         itemName: result.itemName,
@@ -156,7 +167,7 @@ export default function ScanScreen() {
         imageUri: result.imageUri,
         scannedAt: new Date().toISOString(),
       });
-      console.log('Scan saved successfully to SQLite');
+      console.log("Scan saved successfully to SQLite");
 
       HapticService.notification();
       Alert.alert(
@@ -175,11 +186,15 @@ export default function ScanScreen() {
     }
   };
 
-
-
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+      <CameraView
+        style={styles.camera}
+        facing={facing}
+        flash={flash}
+        enableTorch={flash === "on"}
+        ref={cameraRef}
+      >
         <SafeAreaView style={styles.overlay} edges={["top", "bottom"]}>
           <View style={styles.scanHeader}>
             <TouchableOpacity
@@ -188,7 +203,7 @@ export default function ScanScreen() {
             >
               <MaterialCommunityIcons name="close" size={30} color="white" />
             </TouchableOpacity>
-            
+
             <Text style={styles.scanTitle}>Scan Food</Text>
           </View>
 
@@ -216,11 +231,11 @@ export default function ScanScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={toggleFlash}>
               <MaterialCommunityIcons
-                name="flash-outline"
+                name={flash === "on" ? "flash" : "flash-outline"}
                 size={32}
-                color="white"
+                color={flash === "on" ? "#FFD700" : "white"}
               />
             </TouchableOpacity>
           </View>

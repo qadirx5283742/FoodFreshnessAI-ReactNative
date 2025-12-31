@@ -1,53 +1,45 @@
-import * as FileSystem from 'expo-file-system';
+import { Directory, File, Paths } from "expo-file-system";
 
 class StorageService {
-  // Use a type assertion to handle cases where the type definition might be missing documentDirectory
-  private readonly IMAGES_DIR = `${(FileSystem as any).documentDirectory || ''}scanned_images/`;
+  // Use Paths.document for the document directory
+  private readonly IMAGES_DIR = new Directory(Paths.document, "scanned_images");
 
   async init() {
     try {
-      if (!(FileSystem as any).documentDirectory) {
-        console.error('FileSystem.documentDirectory is not available');
-        return;
-      }
-      const info = await FileSystem.getInfoAsync(this.IMAGES_DIR);
-      if (!info.exists) {
-        await FileSystem.makeDirectoryAsync(this.IMAGES_DIR, { intermediates: true });
-        console.log('Images directory created');
+      if (!this.IMAGES_DIR.exists) {
+        this.IMAGES_DIR.create();
+        console.log("Images directory created");
       }
     } catch (error) {
-      console.error('Storage initialization error:', error);
+      console.error("Storage initialization error:", error);
     }
   }
 
   async saveImage(tempUri: string): Promise<string> {
     await this.init();
-    
-    try {
-      if (!(FileSystem as any).documentDirectory) return tempUri;
 
+    try {
       const filename = `scan_${Date.now()}.jpg`;
-      const permanentUri = `${this.IMAGES_DIR}${filename}`;
-      
-      await FileSystem.copyAsync({
-        from: tempUri,
-        to: permanentUri
-      });
-      
-      return permanentUri;
+      const sourceFile = new File(tempUri);
+      const destinationFile = new File(this.IMAGES_DIR.uri, filename);
+
+      await sourceFile.copy(destinationFile);
+
+      return destinationFile.uri;
     } catch (error) {
-      console.error('Error saving image:', error);
+      console.error("Error saving image:", error);
       return tempUri; // Fallback to temp URI if copy fails
     }
   }
 
   async deleteImage(uri: string) {
     try {
-      if (uri.startsWith(this.IMAGES_DIR)) {
-        await FileSystem.deleteAsync(uri, { idempotent: true });
+      const file = new File(uri);
+      if (file.exists) {
+        file.delete();
       }
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error("Error deleting image:", error);
     }
   }
 }

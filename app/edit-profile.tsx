@@ -1,8 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import DatabaseService from "@/services/DatabaseService";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,26 +12,39 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CustomButton } from '../components/CustomButton';
-import { CustomInput } from '../components/CustomInput';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { getAuthErrorMessage } from '../utils/authErrors';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { CustomButton } from "../components/CustomButton";
+import { CustomInput } from "../components/CustomInput";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { getAuthErrorMessage } from "../utils/authErrors";
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
   const { colors, isDark } = useTheme();
-  
-  const [fullName, setFullName] = useState(user?.fullName || '');
+
+  const [fullName, setFullName] = useState(user?.fullName || "");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfileImage = async () => {
+        if (user) {
+          const savedUri = await DatabaseService.getProfileImage(user.id);
+          if (savedUri) setProfileImage(savedUri);
+        }
+      };
+      loadProfileImage();
+    }, [user])
+  );
+
   const handleSave = async () => {
     if (!fullName.trim()) {
-      setError('Full name is required.');
+      setError("Full name is required.");
       return;
     }
 
@@ -38,41 +53,78 @@ export default function EditProfileScreen() {
 
     try {
       await updateUser(fullName);
-      Alert.alert('Success', 'Profile updated successfully!');
+      Alert.alert("Success", "Profile updated successfully!");
       router.back();
     } catch (err: any) {
       const message = getAuthErrorMessage(err.code);
       setError(message);
-      Alert.alert('Update Error', message);
+      Alert.alert("Update Error", message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color={colors.primary} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top", "bottom"]}
+    >
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={28}
+            color={colors.primary}
+          />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Edit Profile
+        </Text>
         <View style={{ width: 28 }} />
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.avatarSection}>
             <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <MaterialCommunityIcons name="account" size={60} color="white" />
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={{ width: "100%", height: "100%", borderRadius: 50 }}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name="account"
+                  size={60}
+                  color="white"
+                />
+              )}
             </View>
-            <Text style={[styles.avatarSubtext, { color: colors.textSecondary }]}>Profile picture can be changed from the main profile page.</Text>
+            <Text
+              style={[styles.avatarSubtext, { color: colors.textSecondary }]}
+            >
+              Profile picture can be changed from the main profile page.
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Full Name
+            </Text>
             <CustomInput
               placeholder="Enter your full name"
               value={fullName}
@@ -81,16 +133,26 @@ export default function EditProfileScreen() {
               icon="account-outline"
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Email Address (Read-only)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Email Address (Read-only)
+            </Text>
             <CustomInput
-              value={user?.email || ''}
+              value={user?.email || ""}
               editable={false}
               icon="email-outline"
               style={styles.readOnlyInput}
             />
 
             {error && (
-              <View style={[styles.errorContainer, { backgroundColor: isDark ? '#3D1C1C' : '#FFEBEE', borderColor: isDark ? '#A94442' : '#FFCDD2' }]}>
+              <View
+                style={[
+                  styles.errorContainer,
+                  {
+                    backgroundColor: isDark ? "#3D1C1C" : "#FFEBEE",
+                    borderColor: isDark ? "#A94442" : "#FFCDD2",
+                  },
+                ]}
+              >
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -113,9 +175,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
@@ -125,23 +187,23 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   scrollContent: {
     padding: 24,
   },
   avatarSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 30,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -149,15 +211,15 @@ const styles = StyleSheet.create({
   },
   avatarSubtext: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 40,
   },
   form: {
-    width: '100%',
+    width: "100%",
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -175,9 +237,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   errorText: {
-    color: '#FF5252',
+    color: "#FF5252",
     fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
