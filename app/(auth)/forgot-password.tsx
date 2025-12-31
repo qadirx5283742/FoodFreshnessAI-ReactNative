@@ -1,7 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { auth } from "@/config/firebaseConfig";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,7 +12,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomButton } from "../../components/CustomButton";
@@ -19,46 +22,73 @@ import { useTheme } from "../../context/ThemeContext";
 export default function ForgotPassword() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleResetPassword = () => {
-    if (!email) return;
+  const handleResetPassword = async () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email address.");
+      return;
+    }
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await sendPasswordResetEmail(auth, email);
       setLoading(false);
-      console.log("Reset link sent to:", email);
-      // You could navigate to a success screen or show a message here
-    }, 1500);
+      Alert.alert("Success", "Password reset email sent! Check your inbox.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error: any) {
+      setLoading(false);
+      console.error(error);
+      Alert.alert("Error", error.message || "Failed to send reset email.");
+    }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top", "bottom"]}
+    >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity 
-            style={[styles.backButton, { backgroundColor: colors.surface }]} 
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: colors.surface }]}
             onPress={() => router.back()}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.text}
+            />
           </TouchableOpacity>
 
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-              <MaterialCommunityIcons name="lock-reset" size={60} color={colors.primary} />
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="lock-reset"
+                size={60}
+                color={colors.primary}
+              />
             </View>
-            
-            <Text style={[styles.title, { color: colors.primary }]}>Forgot Password</Text>
+
+            <Text style={[styles.title, { color: colors.primary }]}>
+              Forgot Password
+            </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we'll send you a link to reset your
+              password.
             </Text>
 
             <View style={styles.form}>
@@ -71,17 +101,23 @@ export default function ForgotPassword() {
                 icon="email-outline"
               />
 
-              <CustomButton 
-                title="Send Reset Link" 
+              <CustomButton
+                title="Send Reset Link"
                 onPress={handleResetPassword}
                 loading={loading}
                 style={styles.button}
               />
 
               <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: colors.textSecondary }]}>Remember your password? </Text>
+                <Text
+                  style={[styles.footerText, { color: colors.textSecondary }]}
+                >
+                  Remember your password?{" "}
+                </Text>
                 <TouchableOpacity onPress={() => router.back()}>
-                  <Text style={[styles.loginLink, { color: colors.primary }]}>Login</Text>
+                  <Text style={[styles.loginLink, { color: colors.primary }]}>
+                    Login
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -104,10 +140,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -116,49 +152,49 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     padding: 32,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   iconContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
     marginBottom: 32,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
   form: {
-    width: '100%',
+    width: "100%",
   },
   button: {
     marginTop: 8,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 24,
   },
   footerText: {
     fontSize: 15,
   },
   loginLink: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 15,
   },
 });
