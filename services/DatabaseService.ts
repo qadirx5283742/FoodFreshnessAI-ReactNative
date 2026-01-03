@@ -1,5 +1,5 @@
 import * as SQLite from "expo-sqlite";
-import { sendLocalNotification } from "./NotificationService";
+import { scheduleLocalNotification } from "./NotificationService";
 
 export interface DatabaseScan {
   id?: number;
@@ -159,6 +159,21 @@ class DatabaseService {
     if (!this.db) await this.init();
 
     try {
+      // 1. Fetch old name first to update notification messages
+      const oldItem = await this.db!.getFirstAsync<{ itemName: string }>(
+        "SELECT itemName FROM scans WHERE id = ? AND userId = ?",
+        [id, userId]
+      );
+
+      if (oldItem) {
+        // Update history text: replace old name with new name in notification body
+        await this.db!.runAsync(
+          "UPDATE notifications SET body = REPLACE(body, ?, ?) WHERE scanId = ?",
+          [oldItem.itemName, newName, id]
+        );
+      }
+
+      // 2. Update the main scan record
       await this.db!.runAsync(
         "UPDATE scans SET itemName = ? WHERE id = ? AND userId = ?",
         [newName, id, userId]
@@ -194,12 +209,25 @@ class DatabaseService {
     }
   }
 
-  async addNotification(userId: string, title: string, body: string) {
+  async addNotification(
+    userId: string,
+    title: string,
+    body: string,
+    scanId?: number,
+    imageUri?: string
+  ) {
     if (!this.db) await this.init();
     try {
       await this.db!.runAsync(
-        "INSERT INTO notifications (userId, title, body, date) VALUES (?, ?, ?, ?)",
-        [userId, title, body, new Date().toISOString()]
+        "INSERT INTO notifications (userId, title, body, date, scanId, imageUri) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          title,
+          body,
+          new Date().toISOString(),
+          scanId || null,
+          imageUri || null,
+        ]
       );
     } catch (error) {
       console.error("Error adding notification:", error);
@@ -224,9 +252,11 @@ class DatabaseService {
     try {
       // 1. Saare active scans lein
       const scans = await this.getAllScans(userId);
+
       const today = new Date();
       for (const scan of scans) {
         if (!scan.id) continue; // Ensure ID exists
+        if (!scan.imageUri) continue;
 
         // Expiry Date Calculate karein
         const scannedDate = new Date(scan.scannedAt);
@@ -262,7 +292,7 @@ class DatabaseService {
             );
 
             // [NEW] Trigger Push Notification
-            await sendLocalNotification(title, body);
+            await scheduleLocalNotification(title, body);
           }
         }
       }

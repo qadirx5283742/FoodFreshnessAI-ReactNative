@@ -15,6 +15,7 @@ import { useAuth } from "./../context/AuthContext";
 import { useTheme } from "./../context/ThemeContext";
 import DatabaseService from "./../services/DatabaseService";
 import { HapticService } from "./../services/HapticService";
+import { scheduleShelfLifeNotifications } from "./../services/NotificationService";
 import StorageService from "./../services/StorageService";
 import TfliteService from "./../services/TfliteService";
 
@@ -125,14 +126,20 @@ export default function ScanScreen() {
       let status = "Spoiled";
       let shelfLifeDays = 0;
 
-      if (rawScore < 0.1) {
+      if (freshnessPercentage >= 85) {
+        status = "Fresh";
+        shelfLifeDays = 5;
+      } else if (freshnessPercentage >= 70) {
+        status = "Fresh";
+        shelfLifeDays = 4;
+      } else if (freshnessPercentage >= 55) {
         status = "Fresh";
         shelfLifeDays = 3;
-      } else if (rawScore < 0.25) {
+      } else if (freshnessPercentage > 45) {
         status = "Fresh";
         shelfLifeDays = 2;
-      } else if (rawScore < 0.35) {
-        status = "Fresh"; // Medium Fresh
+      } else if (freshnessPercentage > 20) {
+        status = "Fresh"; // Consume soon
         shelfLifeDays = 1;
       } else {
         status = "Spoiled";
@@ -156,7 +163,7 @@ export default function ScanScreen() {
         throw new Error("User not authenticated");
       }
 
-      await DatabaseService.addScan({
+      const scanId = await DatabaseService.addScan({
         userId: user.id,
         itemName: result.itemName,
         freshnessScore: result.freshnessScore,
@@ -168,6 +175,13 @@ export default function ScanScreen() {
         scannedAt: new Date().toISOString(),
       });
       console.log("Scan saved successfully to SQLite");
+
+      // Schedule background notifications for each day of shelf life
+      await scheduleShelfLifeNotifications(
+        scanId,
+        result.itemName,
+        result.shelfLifeDays
+      );
 
       HapticService.notification();
       Alert.alert(

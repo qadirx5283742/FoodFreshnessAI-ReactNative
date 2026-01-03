@@ -84,7 +84,11 @@ export default function NotificationsScreen() {
                   marginTop: 8,
                 }}
               >
-                {new Date(item.date).toLocaleDateString()}
+                {new Date(item.date).toLocaleDateString()} at{" "}
+                {new Date(item.date).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </Text>
             </View>
           </View>

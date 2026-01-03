@@ -23,6 +23,7 @@ import { getAuthErrorMessage } from "../utils/authErrors";
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
+  const { deleteAccount } = useAuth();
   const { colors, isDark } = useTheme();
 
   const [fullName, setFullName] = useState(user?.fullName || "");
@@ -62,6 +63,32 @@ export default function EditProfileScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              Alert.alert("Deleted", "Your account has been deleted.");
+              router.replace("/(auth)/login"); // Login screen par wapis bhej dein
+            } catch (err: any) {
+              Alert.alert(
+                "Error",
+                "Please logout and login again to delete your account."
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -134,7 +161,7 @@ export default function EditProfileScreen() {
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Email Address (Read-only)
+              Email Address
             </Text>
             <CustomInput
               value={user?.email || ""}
@@ -163,6 +190,14 @@ export default function EditProfileScreen() {
               disabled={isLoading}
               style={styles.saveButton}
             />
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              style={[styles.deleteButton, { borderColor: colors.error }]}
+            >
+              <Text style={[styles.deleteButtonText, { color: colors.error }]}>
+                Delete Account
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -241,5 +276,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  deleteButton: {
+    marginTop: 20,
+    paddingVertical: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import DatabaseService from "../services/DatabaseService";
+import { scheduleShelfLifeNotifications } from "../services/NotificationService";
 
 export default function ProductDetailsScreen() {
   const router = useRouter();
@@ -36,9 +37,12 @@ export default function ProductDetailsScreen() {
   const freshnessPercentage = parseInt(freshnessStr.replace("%", "")) / 100;
 
   let shelfLife = 0;
-  if (freshnessPercentage >= 0.9) shelfLife = 3;
-  else if (freshnessPercentage >= 0.75) shelfLife = 2;
-  else if (freshnessPercentage >= 0.65) shelfLife = 1;
+  if (freshnessPercentage >= 0.85) shelfLife = 5;
+  else if (freshnessPercentage >= 0.7) shelfLife = 4;
+  else if (freshnessPercentage >= 0.55) shelfLife = 3;
+  else if (freshnessPercentage > 0.45) shelfLife = 2;
+  else if (freshnessPercentage > 0.2) shelfLife = 1;
+  else shelfLife = 0;
 
   expiryDate.setDate(scannedDate.getDate() + shelfLife);
   const formattedScanned = scannedDate.toISOString().split("T")[0];
@@ -60,6 +64,14 @@ export default function ProductDetailsScreen() {
           user.id,
           editedName
         );
+
+        // Re-schedule notifications with updated name (will overwrite because identifier is same)
+        await scheduleShelfLifeNotifications(
+          Number(params.id),
+          editedName,
+          shelfLife
+        );
+
         setIsEditing(false);
       }
     } catch (error) {
@@ -281,6 +293,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingTop: 15,
     paddingBottom: 15,
   },
   backButton: {
@@ -372,6 +385,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 14,
     fontWeight: "600",
+    color: "white",
   },
   expiryCard: {
     flexDirection: "row",

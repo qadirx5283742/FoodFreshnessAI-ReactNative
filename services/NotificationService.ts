@@ -33,13 +33,54 @@ export async function registerForPushNotificationsAsync() {
   return null;
 }
 
-export async function sendLocalNotification(title: string, body: string) {
+export async function scheduleLocalNotification(title: string, body: string) {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: title,
       body: body,
       sound: true,
     },
-    trigger: null, // send immediately
+    trigger: null,
   });
+}
+
+/**
+ * Schedules daily notifications for the remaining shelf life of an item.
+ */
+export async function scheduleShelfLifeNotifications(
+  scanId: number,
+  itemName: string,
+  shelfLifeDays: number
+) {
+  if (shelfLifeDays <= 0) return;
+
+  console.log(`Scheduling ${shelfLifeDays} notifications for ${itemName}`);
+
+  for (let i = 1; i <= shelfLifeDays; i++) {
+    const daysLeft = shelfLifeDays - i;
+    const body =
+      daysLeft === 0
+        ? `Your ${itemName} expires today! 🍎`
+        : `Your ${itemName} has ${daysLeft} day${
+            daysLeft > 1 ? "s" : ""
+          } left. 🍏`;
+
+    // Calculate seconds: i = 1 (1 day later), i = 2 (2 days later), etc.
+    // In a real app, you might want to schedule this for a specific time like 9 AM.
+    // For now, we'll use 24-hour intervals from the scan time.
+    const seconds = i * 24 * 60 * 60;
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: `shelf-life-${scanId}-${i}`,
+      content: {
+        title: "Food Freshness Update",
+        body: body,
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: seconds,
+      },
+    });
+  }
 }

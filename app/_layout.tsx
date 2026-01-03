@@ -8,6 +8,7 @@ import {
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { ThemeProvider } from "../context/ThemeContext";
+import DatabaseService from "../services/DatabaseService";
 import { registerForPushNotificationsAsync } from "../services/NotificationService";
 
 Notifications.setNotificationHandler({
@@ -44,6 +45,25 @@ function RootLayoutNav() {
       router.replace("/(tabs)");
     }
   }, [user, isLoading, segments, navigationState]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen for notifications while the app is foregrounded or backgrounded
+    const subscription = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        DatabaseService.addNotification(
+          user.id,
+          notification.request.content.title || "Update",
+          notification.request.content.body || ""
+        );
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user]);
 
   if (isLoading) {
     return null;

@@ -1,12 +1,13 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  updateProfile
-} from 'firebase/auth';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../config/firebaseConfig';
+  updateProfile,
+} from "firebase/auth";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { auth } from "../config/firebaseConfig";
 
 interface User {
   id: string;
@@ -21,6 +22,7 @@ interface AuthContextType {
   signUp: (email: string, fullName: string, pass: string) => Promise<void>;
   updateUser: (fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,8 +36,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (firebaseUser) {
         setUser({
           id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          fullName: firebaseUser.displayName || '',
+          email: firebaseUser.email || "",
+          fullName: firebaseUser.displayName || "",
         });
       } else {
         setUser(null);
@@ -45,6 +47,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return unsubscribe;
   }, []);
+
+  const deleteAccount = async () => {
+    if (!auth.currentUser) return;
+    try {
+      await deleteUser(auth.currentUser);
+      setUser(null); // User state clear karein
+    } catch (error: any) {
+      console.error("Delete Account Error:", error.message);
+      throw error;
+    }
+  };
 
   const signIn = async (email: string, pass: string) => {
     setIsLoading(true);
@@ -62,7 +75,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     try {
       // 1. Create Firebase User
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
       const firebaseUser = userCredential.user;
 
       // 2. Set Firebase Display Name
@@ -83,12 +100,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateUser = async (fullName: string) => {
     if (!auth.currentUser) return;
-    
+
     try {
       // Update Firebase Profile
       await updateProfile(auth.currentUser, { displayName: fullName });
-      
-      setUser(prev => prev ? { ...prev, fullName } : null);
+
+      setUser((prev) => (prev ? { ...prev, fullName } : null));
     } catch (error: any) {
       console.error("Update Profile Error:", error.message);
       throw error;
@@ -104,7 +121,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, updateUser, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        signIn,
+        signUp,
+        updateUser,
+        signOut,
+        deleteAccount,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -113,7 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

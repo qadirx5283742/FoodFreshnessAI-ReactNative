@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomButton } from "../../components/CustomButton";
@@ -21,23 +21,32 @@ import { getAuthErrorMessage } from "../../utils/authErrors";
 export default function Register() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
   const { signUp } = useAuth();
 
+  const validateEmail = (email: string) => {
+    return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email);
+  };
+
   const handleCreateAccount = async () => {
     if (!fullName || !email || !password) {
-      setError('All fields are required.');
+      setError("All fields are required.");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
 
     if (password.length < 6) {
-      setError('Password should be minimum 6 characters long.');
+      setError("Password should be minimum 6 characters long.");
       return;
     }
 
@@ -47,24 +56,31 @@ export default function Register() {
     } catch (err: any) {
       const message = getAuthErrorMessage(err.code);
       setError(message);
-      Alert.alert('Registration Error', message);
+      Alert.alert("Registration Error", message);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top", "bottom"]}
+    >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.title, { color: colors.primary }]}>Create Account</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Start tracking food freshness smarter</Text>
+            <Text style={[styles.title, { color: colors.primary }]}>
+              Create Account
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Start tracking food freshness smarter
+            </Text>
 
             <View style={styles.form}>
               <CustomInput
@@ -95,21 +111,35 @@ export default function Register() {
               />
 
               {error && (
-                <View style={[styles.errorContainer, { backgroundColor: isDark ? '#3D1C1C' : '#FFEBEE', borderColor: isDark ? '#A94442' : '#FFCDD2' }]}>
+                <View
+                  style={[
+                    styles.errorContainer,
+                    {
+                      backgroundColor: isDark ? "#3D1C1C" : "#FFEBEE",
+                      borderColor: isDark ? "#A94442" : "#FFCDD2",
+                    },
+                  ]}
+                >
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
 
-              <CustomButton 
-                title="Create Account" 
+              <CustomButton
+                title="Create Account"
                 onPress={handleCreateAccount}
                 style={styles.button}
               />
 
               <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/login')}>
-                  <Text style={[styles.loginLink, { color: colors.primary }]}>Login</Text>
+                <Text
+                  style={[styles.footerText, { color: colors.textSecondary }]}
+                >
+                  Already have an account?{" "}
+                </Text>
+                <TouchableOpacity onPress={() => router.push("/login")}>
+                  <Text style={[styles.loginLink, { color: colors.primary }]}>
+                    Login
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -126,46 +156,46 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
   },
   card: {
     borderRadius: 24,
     padding: 32,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
     marginBottom: 32,
-    textAlign: 'center',
+    textAlign: "center",
   },
   form: {
-    width: '100%',
+    width: "100%",
   },
   button: {
     marginTop: 8,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 24,
   },
   footerText: {
     fontSize: 15,
   },
   loginLink: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 15,
   },
   errorContainer: {
@@ -175,9 +205,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   errorText: {
-    color: '#FF5252',
+    color: "#FF5252",
     fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
