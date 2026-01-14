@@ -10,11 +10,11 @@ const firebaseConfig = {
   storageBucket: "foodfreshnessai-reactnative.firebasestorage.app",
   messagingSenderId: "959084930434",
   appId: "1:959084930434:web:1aaf8b21a53f5a40929b9b",
-  measurementId: "G-YF22VW491X"
+  measurementId: "G-YF22VW491X",
 };
 
 const app = initializeApp(firebaseConfig);
 // @ts-ignore
 export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
+  persistence: getReactNativePersistence(AsyncStorage),
 });

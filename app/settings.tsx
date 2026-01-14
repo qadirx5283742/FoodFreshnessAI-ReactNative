@@ -2,8 +2,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -25,12 +28,12 @@ const SETTINGS_KEY = "@app_settings";
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, isDark, setTheme } = useTheme();
+  const { t, i18n } = useTranslation();
 
-  // Settings State
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [hapticFeedback, setHapticFeedback] = useState(true);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
 
-  // Load settings on mount
   useEffect(() => {
     loadSettings();
   }, []);
@@ -42,13 +45,16 @@ export default function SettingsScreen() {
         const parsed = JSON.parse(savedSettings);
         setNotificationsEnabled(parsed.notificationsEnabled ?? true);
         setHapticFeedback(parsed.hapticFeedback ?? true);
+        if (parsed.language) {
+          i18n.changeLanguage(parsed.language);
+        }
       }
     } catch (error) {
       console.error("Error loading settings:", error);
     }
   };
 
-  const saveSetting = async (key: string, value: boolean) => {
+  const saveSetting = async (key: string, value: any) => {
     if (key === "notificationsEnabled") {
       setNotificationsEnabled(value);
       if (value) {
@@ -57,7 +63,6 @@ export default function SettingsScreen() {
     }
     if (key === "hapticFeedback") setHapticFeedback(value);
 
-    // Provide immediate haptic feedback for the toggle itself
     HapticService.selection();
 
     try {
@@ -68,6 +73,12 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error("Error saving setting:", error);
     }
+  };
+
+  const changeLanguage = async (lang: string) => {
+    i18n.changeLanguage(lang);
+    saveSetting("language", lang);
+    setLanguageModalVisible(false);
   };
 
   const handleTestNotification = async () => {
@@ -139,7 +150,6 @@ export default function SettingsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top", "bottom"]}
     >
-      {/* Header */}
       <View
         style={[
           styles.header,
@@ -157,7 +167,7 @@ export default function SettingsScreen() {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Settings
+          {t("SETTING_BTN")}
         </Text>
         <View style={{ width: 28 }} />
       </View>
@@ -166,31 +176,29 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Appearance Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Appearance
+            {t("PREFERENCES")}
           </Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingRow
               icon="theme-light-dark"
-              label="Dark Mode"
-              subLabel="Switch between light and dark themes"
+              label={t("THEME")}
+              subLabel={`${t("LIGHT")} / ${t("DARK")}`}
               value={isDark}
               onToggle={(val: boolean) => setTheme(val ? "dark" : "light")}
             />
           </View>
         </View>
 
-        {/* Notifications Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Notifications
+            {t("NOTIFICATIONS")}
           </Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingRow
               icon="bell-outline"
-              label="Push Notifications"
+              label={t("NOTIFICATIONS")}
               subLabel="Get alerts about food freshness"
               value={notificationsEnabled}
               onToggle={(val: boolean) =>
@@ -220,15 +228,14 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* System Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            System
+            {t("PREFERENCES")}
           </Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingRow
               icon="vibrate"
-              label="Haptic Feedback"
+              label={t("HAPTIC_FEEDBACK")}
               subLabel="Subtle vibrations for interactions"
               value={hapticFeedback}
               onToggle={(val: boolean) => saveSetting("hapticFeedback", val)}
@@ -238,23 +245,22 @@ export default function SettingsScreen() {
             />
             <SettingRow
               icon="earth"
-              label="Language"
-              subLabel="English (United States)"
+              label={t("LANGUAGE")}
+              subLabel={i18n.language === "fr" ? t("FRENCH") : t("ENGLISH_US")}
               type="chevron"
-              onPress={() => {}}
+              onPress={() => setLanguageModalVisible(true)}
             />
           </View>
         </View>
 
-        {/* Support Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Support
+            {t("ACCOUNT")}
           </Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingRow
               icon="help-circle-outline"
-              label="Help & Support"
+              label={t("HELP_TITLE")}
               subLabel="FAQs and contact info"
               type="chevron"
               onPress={() => router.push("/help-support")}
@@ -266,6 +272,73 @@ export default function SettingsScreen() {
           Version 1.0.0 (Build 124)
         </Text>
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={languageModalVisible}
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setLanguageModalVisible(false)}
+        >
+          <Pressable
+            style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {t("SELECT_LANGUAGE")}
+              </Text>
+              <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.languageOption,
+                { borderBottomColor: colors.border },
+              ]}
+              onPress={() => changeLanguage("en")}
+            >
+              <Text style={styles.flag}>🇺🇸</Text>
+              <Text style={[styles.languageText, { color: colors.text }]}>
+                {t("ENGLISH_US")}
+              </Text>
+              {i18n.language === "en" && (
+                <MaterialCommunityIcons
+                  name="check"
+                  size={20}
+                  color={colors.primary}
+                />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.languageOption}
+              onPress={() => changeLanguage("fr")}
+            >
+              <Text style={styles.flag}>🇫🇷</Text>
+              <Text style={[styles.languageText, { color: colors.text }]}>
+                {t("FRENCH")}
+              </Text>
+              {i18n.language === "fr" && (
+                <MaterialCommunityIcons
+                  name="check"
+                  size={20}
+                  color={colors.primary}
+                />
+              )}
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -371,5 +444,55 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     marginTop: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 20,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  languageOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  flag: {
+    fontSize: 24,
+    marginRight: 15,
+  },
+  languageText: {
+    fontSize: 16,
+    fontWeight: "500",
+    flex: 1,
   },
 });

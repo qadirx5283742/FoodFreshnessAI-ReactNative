@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -21,6 +22,7 @@ import { getAuthErrorMessage } from "../../utils/authErrors";
 export default function Register() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,15 +78,15 @@ export default function Register() {
         >
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
             <Text style={[styles.title, { color: colors.primary }]}>
-              Create Account
+              {t("CREATE_ACCOUNT")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Start tracking food freshness smarter
+              {t("REGISTER_SUBTITLE")}
             </Text>
 
             <View style={styles.form}>
               <CustomInput
-                placeholder="Full Name"
+                placeholder={t("FULL_NAME_PLACEHOLDER")}
                 value={fullName}
                 onChangeText={setFullName}
                 autoCapitalize="words"
@@ -92,7 +94,7 @@ export default function Register() {
               />
 
               <CustomInput
-                placeholder="Email Address"
+                placeholder={t("EMAIL_PLACEHOLDER")}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -101,7 +103,7 @@ export default function Register() {
               />
 
               <CustomInput
-                placeholder="Password"
+                placeholder={t("PASSWORD_PLACEHOLDER")}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -125,7 +127,7 @@ export default function Register() {
               )}
 
               <CustomButton
-                title="Create Account"
+                title={t("CREATE_ACCOUNT_BTN")}
                 onPress={handleCreateAccount}
                 style={styles.button}
               />
@@ -134,11 +136,11 @@ export default function Register() {
                 <Text
                   style={[styles.footerText, { color: colors.textSecondary }]}
                 >
-                  Already have an account?{" "}
+                  {t("ALREADY_HAVE_ACCOUNT_TEXT")}
                 </Text>
                 <TouchableOpacity onPress={() => router.push("/login")}>
                   <Text style={[styles.loginLink, { color: colors.primary }]}>
-                    Login
+                    {t("LOGIN_LINK")}
                   </Text>
                 </TouchableOpacity>
               </View>

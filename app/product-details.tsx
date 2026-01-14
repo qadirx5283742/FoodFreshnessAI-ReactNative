@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Image as RNImage,
@@ -21,39 +22,44 @@ export default function ProductDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState((params.name as string) || "");
 
-  // Calculate Expiry
   const scannedDate = params.scannedAt
     ? new Date(params.scannedAt as string)
     : new Date();
   const expiryDate = new Date(scannedDate);
 
-  // Derive shelf life from freshness score percentage (e.g., "95%" -> 3 days)
   const freshnessStr = (params.freshness as string) || "0%";
   const freshnessPercentage = parseInt(freshnessStr.replace("%", "")) / 100;
 
-  let shelfLife = 0;
-  if (freshnessPercentage >= 0.85) shelfLife = 5;
-  else if (freshnessPercentage >= 0.7) shelfLife = 4;
-  else if (freshnessPercentage >= 0.55) shelfLife = 3;
-  else if (freshnessPercentage > 0.45) shelfLife = 2;
-  else if (freshnessPercentage > 0.2) shelfLife = 1;
-  else shelfLife = 0;
+  let originalShelfLife = 0;
+  if (freshnessPercentage >= 0.85) originalShelfLife = 5;
+  else if (freshnessPercentage >= 0.7) originalShelfLife = 4;
+  else if (freshnessPercentage >= 0.55) originalShelfLife = 3;
+  else if (freshnessPercentage > 0.45) originalShelfLife = 2;
+  else if (freshnessPercentage > 0.2) originalShelfLife = 1;
+  else originalShelfLife = 0;
 
-  expiryDate.setDate(scannedDate.getDate() + shelfLife);
+  expiryDate.setDate(scannedDate.getDate() + originalShelfLife);
   const formattedScanned = scannedDate.toISOString().split("T")[0];
   const formattedExpiry = expiryDate.toISOString().split("T")[0];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiryMidnight = new Date(expiryDate);
+  expiryMidnight.setHours(0, 0, 0, 0);
 
-  // If shelfLife is 0, it means it's already spoiled/expired
-  const isExpired = shelfLife <= 0;
+  const diffTime = expiryMidnight.getTime() - today.getTime();
+  const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const isExpired = daysRemaining < 0;
 
   const handleSaveName = async () => {
     if (!editedName.trim()) {
-      Alert.alert("Error", "Product name cannot be empty");
+      Alert.alert(t("PRODUCT_NAME_ERROR_TITLE"), t("PRODUCT_NAME_ERROR_MSG"));
       return;
     }
 
@@ -65,17 +71,16 @@ export default function ProductDetailsScreen() {
           editedName
         );
 
-        // Re-schedule notifications with updated name (will overwrite because identifier is same)
         await scheduleShelfLifeNotifications(
           Number(params.id),
           editedName,
-          shelfLife
+          originalShelfLife
         );
 
         setIsEditing(false);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to update product name");
+      Alert.alert(t("UPDATE_ERROR_TITLE"), t("UPDATE_ERROR_MSG"));
     }
   };
 
@@ -85,10 +90,8 @@ export default function ProductDetailsScreen() {
     freshness: (params.freshness as string) || "95%",
     expiryDate: formattedExpiry,
     scannedDate: formattedScanned,
-    description: isExpired
-      ? "Spoiled. Best consumed right now"
-      : "Fresh and healthy food item. Best consumed while fresh.",
-    imageId: params.imageId as string, // Kept for type safety though likely unused
+    description: isExpired ? t("SPOILED_DESC") : t("FRESH_DESC"),
+    imageId: params.imageId as string,
     icon: (params.icon as string) || "food-apple",
   };
 
@@ -104,7 +107,7 @@ export default function ProductDetailsScreen() {
         >
           <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Details</Text>
+        <Text style={styles.headerTitle}>{t("PRODUCT_DETAILS_TITLE")}</Text>
       </View>
 
       <ScrollView
@@ -201,7 +204,9 @@ export default function ProductDetailsScreen() {
               ]}
             >
               <MaterialCommunityIcons name="leaf" size={16} color="white" />
-              <Text style={styles.badgeText}>{product.freshness} Fresh</Text>
+              <Text style={styles.badgeText}>
+                {product.freshness} {t("STATUS_FRESH")}
+              </Text>
             </View>
             <View
               style={[
@@ -226,8 +231,10 @@ export default function ProductDetailsScreen() {
                 ]}
               >
                 {isExpired
-                  ? "Expired"
-                  : `${shelfLife} Day${shelfLife > 1 ? "s" : ""} Left`}
+                  ? t("EXPIRED_LABEL")
+                  : `${daysRemaining} ${
+                      daysRemaining > 1 ? t("DAYS_LEFT") : t("DAY_LEFT")
+                    }`}
               </Text>
             </View>
           </View>
@@ -245,7 +252,7 @@ export default function ProductDetailsScreen() {
             />
             <View style={styles.dateBlock}>
               <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
-                Scanned
+                {t("SCANNED_LABEL_DATE")}
               </Text>
               <Text style={[styles.dateValue, { color: colors.text }]}>
                 {product.scannedDate}
@@ -256,7 +263,7 @@ export default function ProductDetailsScreen() {
             />
             <View style={styles.dateBlock}>
               <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>
-                Expires
+                {t("EXPIRES_LABEL_DATE")}
               </Text>
               <Text style={[styles.dateValue, { color: colors.text }]}>
                 {product.expiryDate}
@@ -271,7 +278,7 @@ export default function ProductDetailsScreen() {
                 { color: isDark ? colors.primary : "#2E7D32" },
               ]}
             >
-              Description
+              {t("DESCRIPTION_TITLE")}
             </Text>
             <Text
               style={[styles.groupContent, { color: colors.textSecondary }]}

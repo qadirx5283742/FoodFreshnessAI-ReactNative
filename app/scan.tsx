@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -22,14 +23,14 @@ import TfliteService from "./../services/TfliteService";
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<"back" | "front">("back");
-  const [flash, setFlash] = useState<"on" | "off">("off"); // [NEW] Flash state
+  const [flash, setFlash] = useState<"on" | "off">("off");
   const [isScanning, setIsScanning] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
 
-  // Reset state whenever the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       setIsScanning(false);
@@ -37,12 +38,10 @@ export default function ScanScreen() {
   );
 
   if (!permission) {
-    // Camera permissions are still loading.
     return <View style={styles.container} />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View style={styles.container}>
         <View style={styles.permissionView}>
@@ -51,9 +50,7 @@ export default function ScanScreen() {
             size={64}
             color={colors.primary}
           />
-          <Text style={styles.message}>
-            We need your permission to show the camera
-          </Text>
+          <Text style={styles.message}>{t("PERMISSION_MSG")}</Text>
           <TouchableOpacity
             style={[
               styles.permissionButton,
@@ -61,7 +58,9 @@ export default function ScanScreen() {
             ]}
             onPress={requestPermission}
           >
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            <Text style={styles.permissionButtonText}>
+              {t("GRANT_PERMISSION_BTN")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -89,7 +88,6 @@ export default function ScanScreen() {
       setIsScanning(true);
       HapticService.trigger();
 
-      // 1. Take Picture
       console.log("Taking picture...");
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.7,
@@ -99,30 +97,21 @@ export default function ScanScreen() {
       if (!photo) throw new Error("Could not capture photo");
       console.log("Picture taken. URI:", photo.uri);
 
-      // 2. Save Image locally (Permanent storage)
       console.log("Saving image to local storage...");
       const permanentImageUri = await StorageService.saveImage(photo.uri);
       console.log("Image saved at:", permanentImageUri);
-
-      // 3. AI Analysis with On-Device TFLite
       console.log("Calling TFLite analysis...");
       const analysisResult = await TfliteService.analyzeImage(photo.uri);
       console.log("Analysis result received:", analysisResult);
 
-      // Calculate results based on user selection and model score (LOWER IS FRESHER)
       const rawScore = analysisResult.confidence;
       console.log("Raw Score to use (Lower=Fresher):", rawScore);
 
-      // Invert score for UI display:
-      // 0 (Best) -> 95%
-      // 1 (Worst) -> 11%
-      // Linear Interpolation: y = 95 - 84x
       const freshnessPercentage = Math.max(
         0,
         Math.min(100, Math.round(95 - 84 * rawScore))
       );
 
-      // Corrected Logic Thresholds (from Python script)
       let status = "Spoiled";
       let shelfLifeDays = 0;
 
@@ -139,7 +128,7 @@ export default function ScanScreen() {
         status = "Fresh";
         shelfLifeDays = 2;
       } else if (freshnessPercentage > 20) {
-        status = "Fresh"; // Consume soon
+        status = "Fresh";
         shelfLifeDays = 1;
       } else {
         status = "Spoiled";
@@ -156,7 +145,6 @@ export default function ScanScreen() {
         imageUri: permanentImageUri,
       };
 
-      // 4. Save Scan to SQLite Database
       console.log("Saving scan to SQLite...");
 
       if (!user) {
@@ -176,7 +164,6 @@ export default function ScanScreen() {
       });
       console.log("Scan saved successfully to SQLite");
 
-      // Schedule background notifications for each day of shelf life
       await scheduleShelfLifeNotifications(
         scanId,
         result.itemName,
@@ -185,16 +172,13 @@ export default function ScanScreen() {
 
       HapticService.notification();
       Alert.alert(
-        "Scan Success!",
+        t("SCAN_SUCCESS_TITLE"),
         `${result.itemName} has been analyzed: ${result.status} (${result.freshnessScore})`
       );
       router.replace("/(tabs)/list");
     } catch (error: any) {
       console.error("Scan Error:", error);
-      Alert.alert(
-        "Scan Failed",
-        error.message || "An error occurred while scanning."
-      );
+      Alert.alert(t("SCAN_FAILED_TITLE"), error.message || t("SCAN_ERROR_MSG"));
     } finally {
       setIsScanning(false);
     }
@@ -218,7 +202,7 @@ export default function ScanScreen() {
               <MaterialCommunityIcons name="close" size={30} color="white" />
             </TouchableOpacity>
 
-            <Text style={styles.scanTitle}>Scan Food</Text>
+            <Text style={styles.scanTitle}>{t("SCAN_FOOD_TITLE")}</Text>
           </View>
 
           <View style={styles.bottomControls}>

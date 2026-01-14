@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -22,6 +23,7 @@ import { useTheme } from "../../context/ThemeContext";
 export default function ForgotPassword() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -84,16 +86,15 @@ export default function ForgotPassword() {
             </View>
 
             <Text style={[styles.title, { color: colors.primary }]}>
-              Forgot Password
+              {t("FORGOT_PASSWORD_TITLE")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Enter your email address and we'll send you a link to reset your
-              password.
+              {t("FORGOT_PASSWORD_SUBTITLE")}
             </Text>
 
             <View style={styles.form}>
               <CustomInput
-                placeholder="Email Address"
+                placeholder={t("EMAIL_PLACEHOLDER")}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -102,7 +103,7 @@ export default function ForgotPassword() {
               />
 
               <CustomButton
-                title="Send Reset Link"
+                title={t("SEND_RESET_LINK_BTN")}
                 onPress={handleResetPassword}
                 loading={loading}
                 style={styles.button}
@@ -112,11 +113,11 @@ export default function ForgotPassword() {
                 <Text
                   style={[styles.footerText, { color: colors.textSecondary }]}
                 >
-                  Remember your password?{" "}
+                  {t("REMEMBER_PASSWORD_TEXT")}
                 </Text>
                 <TouchableOpacity onPress={() => router.back()}>
                   <Text style={[styles.loginLink, { color: colors.primary }]}>
-                    Login
+                    {t("LOGIN_LINK")}
                   </Text>
                 </TouchableOpacity>
               </View>

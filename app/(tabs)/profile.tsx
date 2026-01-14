@@ -4,6 +4,7 @@ import { File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Image,
   ScrollView,
@@ -17,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -58,10 +60,8 @@ export default function ProfileScreen() {
   );
   const handlePickImage = async () => {
     try {
-      // MediaTypeOptions deprecated hai, 'MediaType' use karna better hai agar chal raha ho,
-      // lekin main focus FileSystem par hai.
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Isko ImagePicker.MediaType.Images karna chahiye future me
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.5,
@@ -69,16 +69,14 @@ export default function ProfileScreen() {
       if (!result.canceled && user) {
         const sourceUri = result.assets[0].uri;
         const fileName = sourceUri.split("/").pop() || "profile.jpg";
-        // [NEW API USAGE]
         const sourceFile = new File(sourceUri);
-        const destinationFile = new File(Paths.document, fileName); // Paths.document is the new documentDirectory
+        const destinationFile = new File(Paths.document, fileName);
         console.log("Source URI:", sourceUri);
         console.log("Destination URI:", destinationFile.uri);
         try {
-          // New way to copy
           await sourceFile.copy(destinationFile);
 
-          const newPath = destinationFile.uri; // Get URI string from object
+          const newPath = destinationFile.uri;
           await DatabaseService.saveProfileImage(user.id, newPath);
           setProfileImage(newPath);
         } catch (copyError) {
@@ -131,10 +129,10 @@ export default function ProfileScreen() {
               { color: isDark ? colors.primary : "#1B5E20" },
             ]}
           >
-            {user?.fullName || "Guest User"}
+            {user?.fullName || t("GUEST_USER")}
           </Text>
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-            {user?.email || "guest@example.com"}
+            {user?.email || t("GUEST_EMAIL")}
           </Text>
           <TouchableOpacity
             style={[
@@ -144,21 +142,21 @@ export default function ProfileScreen() {
             onPress={() => router.push("/edit-profile")}
           >
             <Text style={[styles.editProfileText, { color: colors.primary }]}>
-              Edit Profile
+              {t("EDIT_PROFILE")}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Account
+            {t("ACCOUNT")}
           </Text>
           <View
             style={[styles.optionsCard, { backgroundColor: colors.surface }]}
           >
             <ProfileOption
               icon="account-edit-outline"
-              label="Personal Info"
+              label={t("PERSONAL_INFO_BTN")}
               onPress={() => router.push("/edit-profile")}
             />
           </View>
@@ -166,14 +164,14 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            App
+            {t("AAP")}
           </Text>
           <View
             style={[styles.optionsCard, { backgroundColor: colors.surface }]}
           >
             <ProfileOption
               icon="cog-outline"
-              label="Settings"
+              label={t("SETTING_BTN")}
               onPress={() => router.push("/settings")}
             />
             <View
@@ -181,7 +179,7 @@ export default function ProfileScreen() {
             />
             <ProfileOption
               icon="information-outline"
-              label="About App"
+              label={t("ABOUT_APP_BTN")}
               onPress={() => router.push("/about")}
             />
           </View>
@@ -197,7 +195,7 @@ export default function ProfileScreen() {
             color="white"
             style={{ marginRight: 10 }}
           />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t("LOGOUT")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

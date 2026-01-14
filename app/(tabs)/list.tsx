@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   FlatList,
@@ -24,6 +25,7 @@ export default function HistoryScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const fetchScans = async (showLoading = true) => {
@@ -54,25 +56,27 @@ export default function HistoryScreen() {
   };
 
   const handleDelete = (id: number, name: string) => {
-    Alert.alert("Delete Product", `Are you sure you want to delete ${name}?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (user) {
-            await DatabaseService.deleteScan(id, user.id);
-            // List ko refresh karein taake item hat jaye
-            fetchScans(false);
-          }
+    Alert.alert(
+      t("DELETE_PRODUCT_TITLE"),
+      t("DELETE_PRODUCT_MESSAGE", { name }),
+      [
+        { text: t("CANCEL"), style: "cancel" },
+        {
+          text: t("DELETE"),
+          style: "destructive",
+          onPress: async () => {
+            if (user) {
+              await DatabaseService.deleteScan(id, user.id);
+              fetchScans(false);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const renderProductItem = ({ item }: any) => (
     <View style={[styles.card, { backgroundColor: colors.card }]}>
-      {/* Main Click Area */}
       <TouchableOpacity
         style={styles.cardMain}
         onPress={() =>
@@ -80,9 +84,8 @@ export default function HistoryScreen() {
             pathname: "/product-details",
             params: {
               id: String(item.id),
-              // ... baaki params same
               name: item.itemName,
-              farm: item.farm || "Unknown",
+              farm: item.farm || t("UNKNOWN"),
               freshness: item.freshnessScore,
               icon: item.icon || "food-apple",
               scannedAt: item.scannedAt,
@@ -110,12 +113,12 @@ export default function HistoryScreen() {
               {item.itemName}
             </Text>
             <Text style={[styles.farmName, { color: colors.textSecondary }]}>
-              {item.farm || "Unknown"}
+              {item.farm || t("UNKNOWN")}
             </Text>
             <Text
               style={[styles.freshnessText, { color: colors.textSecondary }]}
             >
-              Status:{" "}
+              {t("STATUS_LABEL")}
               <Text
                 style={[
                   styles.freshnessValue,
@@ -128,15 +131,14 @@ export default function HistoryScreen() {
                 ]}
               >
                 {parseInt(item.freshnessScore) < 40
-                  ? "Spoiled"
-                  : `${item.freshnessScore} Fresh`}
+                  ? t("STATUS_SPOILED")
+                  : `${item.freshnessScore} ${t("STATUS_FRESH")}`}
               </Text>
             </Text>
           </View>
         </View>
       </TouchableOpacity>
 
-      {/* Delete Button */}
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => handleDelete(item.id, item.itemName)}
@@ -154,16 +156,16 @@ export default function HistoryScreen() {
     <View style={styles.emptyContainer}>
       <MaterialCommunityIcons name="history" size={80} color={colors.border} />
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        No Scans Yet
+        {t("EMPTY_HISTORY_TITLE")}
       </Text>
       <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-        Capture your first fruit scan to see the history here.
+        {t("EMPTY_HISTORY_SUBTITLE")}
       </Text>
       <TouchableOpacity
         style={[styles.scanPromptButton, { backgroundColor: colors.primary }]}
         onPress={() => router.push("../scan")}
       >
-        <Text style={styles.scanPromptText}>Start Scanning</Text>
+        <Text style={styles.scanPromptText}>{t("START_SCANNING_BTN")}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -175,7 +177,7 @@ export default function HistoryScreen() {
     >
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.primary }]}>
-          Products
+          {t("PRODUCTS_TITLE")}
         </Text>
         <TouchableOpacity onPress={() => router.push("../scan")}>
           <MaterialCommunityIcons
@@ -195,7 +197,7 @@ export default function HistoryScreen() {
             style={styles.searchIcon}
           />
           <TextInput
-            placeholder="Search product..."
+            placeholder={t("SEARCH_PLACEHOLDER")}
             style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -275,8 +277,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
-    flexDirection: "row", // [NEW] Row layout for delete button
-    overflow: "hidden", // [NEW]
+    flexDirection: "row",
+    overflow: "hidden",
   },
   cardContent: {
     flexDirection: "row",
@@ -342,10 +344,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
   },
-  // 'card' style me se padding hatakar wrapper banaye
   cardMain: {
     flex: 1,
-    padding: 15, // Padding yahan move ki
+    padding: 15,
   },
   deleteButton: {
     width: 60,

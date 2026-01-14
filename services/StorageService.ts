@@ -1,7 +1,6 @@
 import { Directory, File, Paths } from "expo-file-system";
 
 class StorageService {
-  // Use Paths.document for the document directory
   private readonly IMAGES_DIR = new Directory(Paths.document, "scanned_images");
 
   async init() {
@@ -28,7 +27,7 @@ class StorageService {
       return destinationFile.uri;
     } catch (error) {
       console.error("Error saving image:", error);
-      return tempUri; // Fallback to temp URI if copy fails
+      return tempUri;
     }
   }
 

@@ -34,7 +34,6 @@ class DatabaseService {
     try {
       this.db = await SQLite.openDatabaseAsync("scans.db");
 
-      // Remove 'DROP TABLE' and use 'IF NOT EXISTS'
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS scans (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +49,6 @@ class DatabaseService {
         );
       `);
 
-      // Table 2: User Profile
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS users (
           userId TEXT PRIMARY KEY,
@@ -71,7 +69,6 @@ class DatabaseService {
         );
       `);
 
-      // Migration: Try to add new columns if they don't exist
       try {
         await this.db.execAsync(
           "ALTER TABLE notifications ADD COLUMN scanId INTEGER;"
@@ -79,10 +76,7 @@ class DatabaseService {
         await this.db.execAsync(
           "ALTER TABLE notifications ADD COLUMN imageUri TEXT;"
         );
-      } catch (e) {
-        // Classically, this errors if columns exist, so we ignore it.
-        // This is a simple migration strategy for this dev stage.
-      }
+      } catch (e) {}
 
       console.log("SQLite database initialized");
     } catch (error) {
@@ -159,21 +153,18 @@ class DatabaseService {
     if (!this.db) await this.init();
 
     try {
-      // 1. Fetch old name first to update notification messages
       const oldItem = await this.db!.getFirstAsync<{ itemName: string }>(
         "SELECT itemName FROM scans WHERE id = ? AND userId = ?",
         [id, userId]
       );
 
       if (oldItem) {
-        // Update history text: replace old name with new name in notification body
         await this.db!.runAsync(
           "UPDATE notifications SET body = REPLACE(body, ?, ?) WHERE scanId = ?",
           [oldItem.itemName, newName, id]
         );
       }
 
-      // 2. Update the main scan record
       await this.db!.runAsync(
         "UPDATE scans SET itemName = ? WHERE id = ? AND userId = ?",
         [newName, id, userId]
@@ -250,24 +241,20 @@ class DatabaseService {
   async checkAndCreateExpiryNotifications(userId: string) {
     if (!this.db) await this.init();
     try {
-      // 1. Saare active scans lein
       const scans = await this.getAllScans(userId);
 
       const today = new Date();
       for (const scan of scans) {
-        if (!scan.id) continue; // Ensure ID exists
+        if (!scan.id) continue;
         if (!scan.imageUri) continue;
 
-        // Expiry Date Calculate karein
         const scannedDate = new Date(scan.scannedAt);
         const expiryDate = new Date(scannedDate);
         expiryDate.setDate(scannedDate.getDate() + scan.shelfLifeDays);
-        // Din calculate karein
+
         const diffTime = expiryDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        // Logic: Agar 1 din ya us se kam bacha hai (aur item expired nahi hai ya just expired hai)
         if (diffDays <= 1) {
-          // Check karein ke kya is item ki notification pehle se hai?
           const existing = await this.db!.getFirstAsync(
             "SELECT * FROM notifications WHERE userId = ? AND scanId = ?",
             [userId, scan.id]
@@ -287,11 +274,10 @@ class DatabaseService {
                 body,
                 new Date().toISOString(),
                 scan.id,
-                scan.imageUri || null, // Ensure not undefined
+                scan.imageUri || null,
               ]
             );
 
-            // [NEW] Trigger Push Notification
             await scheduleLocalNotification(title, body);
           }
         }

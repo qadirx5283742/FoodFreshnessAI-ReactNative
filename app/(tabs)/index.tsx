@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FlatList,
   Image,
@@ -29,7 +30,7 @@ const SUGGESTED_ITEMS = [
     freshness: "89%",
     color: "#FF5252",
     icon: "food-apple",
-  }, // Strawberry icon not in MCO, using apple
+  },
   {
     id: "3",
     name: "Broccoli",
@@ -40,6 +41,7 @@ const SUGGESTED_ITEMS = [
 ];
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [recentScans, setRecentScans] = useState<DatabaseScan[]>([]);
   const [lastScan, setLastScan] = useState<DatabaseScan | null>(null);
@@ -119,8 +121,8 @@ export default function Dashboard() {
         ]}
       >
         {parseInt(item.freshnessScore) < 40
-          ? "Spoiled"
-          : `${item.freshnessScore} Fresh`}
+          ? t("STATUS_SPOILED")
+          : `${item.freshnessScore} ${t("STATUS_FRESH")}`}
       </Text>
     </TouchableOpacity>
   );
@@ -134,7 +136,6 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <MaterialCommunityIcons
@@ -143,7 +144,7 @@ export default function Dashboard() {
               color={colors.primary}
             />
             <Text style={[styles.headerTitle, { color: colors.primary }]}>
-              Smart Food Freshness
+              {t("HOME_TITLE")}
             </Text>
           </View>
           <TouchableOpacity
@@ -158,14 +159,12 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Greeting */}
         <View style={styles.greetingSection}>
           <Text style={[styles.greetingText, { color: colors.text }]}>
-            Hello, {user?.fullName || "Guest"} 👋
+            {t("Hello")}, {user?.fullName || t("GUEST_USER")} 👋
           </Text>
         </View>
 
-        {/* Freshness Card */}
         <View
           style={[styles.freshnessCard, { backgroundColor: colors.surface }]}
         >
@@ -178,7 +177,7 @@ export default function Dashboard() {
             <Text
               style={[styles.cardHeaderText, { color: colors.textSecondary }]}
             >
-              {lastScan ? "Last Scan Freshness" : "Start Analyzing"}
+              {lastScan ? t("LAST_SCAN_FRESHNESS") : t("START_ANALYZING")}
             </Text>
           </View>
           <Text style={[styles.freshnessValue, { color: colors.primary }]}>
@@ -188,12 +187,11 @@ export default function Dashboard() {
             style={[styles.freshnessStatus, { color: colors.textSecondary }]}
           >
             {lastScan
-              ? `Scanned: ${lastScan.itemName}`
-              : "Take your first photo"}
+              ? `${t("SCANNED_LABEL")}${lastScan.itemName}`
+              : t("TAKE_FIRST_PHOTO")}
           </Text>
         </View>
 
-        {/* Scan Button */}
         <TouchableOpacity
           style={[
             styles.scanButton,
@@ -202,17 +200,16 @@ export default function Dashboard() {
           onPress={() => router.push("../scan")}
         >
           <MaterialCommunityIcons name="scan-helper" size={24} color="white" />
-          <Text style={styles.scanButtonText}>Scan Now</Text>
+          <Text style={styles.scanButtonText}>{t("SCAN_NOW_BTN")}</Text>
         </TouchableOpacity>
 
-        {/* Recent Scans */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Recent Scans
+            {t("RECENT_SCANS_TITLE")}
           </Text>
           <TouchableOpacity onPress={() => router.push("/list")}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>
-              View All
+              {t("VIEW_ALL_LINK")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -226,7 +223,7 @@ export default function Dashboard() {
           contentContainerStyle={styles.itemsList}
           ListEmptyComponent={
             <Text style={{ color: colors.textSecondary, marginTop: 10 }}>
-              No scans yet. Try scanning a fruit!
+              {t("NO_SCANS_TEXT")}
             </Text>
           }
         />

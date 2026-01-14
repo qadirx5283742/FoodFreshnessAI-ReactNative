@@ -6,6 +6,7 @@ import {
   useSegments,
 } from "expo-router";
 import { useEffect } from "react";
+import "../assets/translations";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import DatabaseService from "../services/DatabaseService";
@@ -30,7 +31,6 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading || !navigationState?.key) return;
 
-    // Check for notification permissions when user is logged in
     if (user) {
       registerForPushNotificationsAsync();
     }
@@ -38,10 +38,8 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
 
     if (!user && !inAuthGroup) {
-      // Redirect to login if not authenticated
       router.replace("/(auth)/login");
     } else if (user && inAuthGroup) {
-      // Redirect to dashboard if authenticated
       router.replace("/(tabs)");
     }
   }, [user, isLoading, segments, navigationState]);
@@ -49,7 +47,6 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!user) return;
 
-    // Listen for notifications while the app is foregrounded or backgrounded
     const subscription = Notifications.addNotificationReceivedListener(
       (notification) => {
         DatabaseService.addNotification(

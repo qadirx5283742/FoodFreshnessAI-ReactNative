@@ -1,5 +1,6 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, Image, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -11,6 +12,7 @@ import DatabaseService, {
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<DatabaseNotification[]>(
     []
   );
@@ -19,9 +21,7 @@ export default function NotificationsScreen() {
     useCallback(() => {
       const loadData = async () => {
         if (user) {
-          // Pehle check run karein taake nayi notifications ban jayein
           await DatabaseService.checkAndCreateExpiryNotifications(user.id);
-          // Phir load karein
           const data = await DatabaseService.getNotifications(user.id);
           setNotifications(data);
         }
@@ -40,7 +40,7 @@ export default function NotificationsScreen() {
           color: colors.text,
         }}
       >
-        Notifications
+        {t("NOTIFICATIONS_TITLE")}
       </Text>
       <FlatList
         data={notifications}
@@ -51,11 +51,10 @@ export default function NotificationsScreen() {
               padding: 15,
               borderBottomWidth: 1,
               borderBottomColor: colors.border,
-              flexDirection: "row", // Image side me dikhane ke liye
+              flexDirection: "row",
               alignItems: "center",
             }}
           >
-            {/* Image Display */}
             {item.imageUri ? (
               <Image
                 source={{ uri: item.imageUri }}
@@ -101,7 +100,7 @@ export default function NotificationsScreen() {
               color: colors.textSecondary,
             }}
           >
-            No notifications yet
+            {t("NO_NOTIFICATIONS_TEXT")}
           </Text>
         }
       />

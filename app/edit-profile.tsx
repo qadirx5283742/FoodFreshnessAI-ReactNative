@@ -2,6 +2,7 @@ import DatabaseService from "@/services/DatabaseService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Image,
@@ -25,6 +26,7 @@ export default function EditProfileScreen() {
   const { user, updateUser } = useAuth();
   const { deleteAccount } = useAuth();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -54,41 +56,37 @@ export default function EditProfileScreen() {
 
     try {
       await updateUser(fullName);
-      Alert.alert("Success", "Profile updated successfully!");
+      Alert.alert(t("UPDATE_SUCCESS_TITLE"), t("UPDATE_SUCCESS_MSG"));
       router.back();
     } catch (err: any) {
       const message = getAuthErrorMessage(err.code);
       setError(message);
-      Alert.alert("Update Error", message);
+      Alert.alert(t("UPDATE_ERROR_TITLE"), message);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteAccount();
-              Alert.alert("Deleted", "Your account has been deleted.");
-              router.replace("/(auth)/login"); // Login screen par wapis bhej dein
-            } catch (err: any) {
-              Alert.alert(
-                "Error",
-                "Please logout and login again to delete your account."
-              );
-            }
-          },
+    Alert.alert(t("DELETE_ACCOUNT_TITLE"), t("DELETE_ACCOUNT_MSG"), [
+      { text: t("CANCEL"), style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteAccount();
+            Alert.alert(t("ACCOUNT_DELETED_TITLE"), t("ACCOUNT_DELETED_MSG"));
+            router.replace("/(auth)/login");
+          } catch (err: any) {
+            Alert.alert(
+              t("UPDATE_ERROR_TITLE"),
+              "Please logout and login again to delete your account."
+            );
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
@@ -113,7 +111,7 @@ export default function EditProfileScreen() {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Edit Profile
+          {t("EDIT_PROFILE_TITLE")}
         </Text>
         <View style={{ width: 28 }} />
       </View>
@@ -144,16 +142,16 @@ export default function EditProfileScreen() {
             <Text
               style={[styles.avatarSubtext, { color: colors.textSecondary }]}
             >
-              Profile picture can be changed from the main profile page.
+              {t("AVATAR_SUBTEXT")}
             </Text>
           </View>
 
           <View style={styles.form}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Full Name
+              {t("FULL_NAME_LABEL")}
             </Text>
             <CustomInput
-              placeholder="Enter your full name"
+              placeholder={t("FULL_NAME_PLACEHOLDER_EDIT")}
               value={fullName}
               onChangeText={setFullName}
               autoCapitalize="words"
@@ -161,7 +159,7 @@ export default function EditProfileScreen() {
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Email Address
+              {t("EMAIL_LABEL")}
             </Text>
             <CustomInput
               value={user?.email || ""}
@@ -185,7 +183,7 @@ export default function EditProfileScreen() {
             )}
 
             <CustomButton
-              title={isLoading ? "Saving..." : "Save Changes"}
+              title={isLoading ? t("SAVING_BTN") : t("SAVE_CHANGES_BTN")}
               onPress={handleSave}
               disabled={isLoading}
               style={styles.saveButton}
@@ -195,7 +193,7 @@ export default function EditProfileScreen() {
               style={[styles.deleteButton, { borderColor: colors.error }]}
             >
               <Text style={[styles.deleteButtonText, { color: colors.error }]}>
-                Delete Account
+                {t("DELETE_ACCOUNT_BTN")}
               </Text>
             </TouchableOpacity>
           </View>

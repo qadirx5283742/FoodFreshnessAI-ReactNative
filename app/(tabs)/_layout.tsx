@@ -47,15 +47,15 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="notifications" // [CHANGED] scan -> notifications
+        name="notifications"
         options={{
-          title: "Notifications", // [CHANGED]
+          title: "Notifications",
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="bell-outline"
               size={28}
               color={color}
-            /> // [CHANGED] Icon
+            />
           ),
         }}
       />

@@ -44,9 +44,6 @@ export async function scheduleLocalNotification(title: string, body: string) {
   });
 }
 
-/**
- * Schedules daily notifications for the remaining shelf life of an item.
- */
 export async function scheduleShelfLifeNotifications(
   scanId: number,
   itemName: string,
@@ -65,9 +62,6 @@ export async function scheduleShelfLifeNotifications(
             daysLeft > 1 ? "s" : ""
           } left. 🍏`;
 
-    // Calculate seconds: i = 1 (1 day later), i = 2 (2 days later), etc.
-    // In a real app, you might want to schedule this for a specific time like 9 AM.
-    // For now, we'll use 24-hour intervals from the scan time.
     const seconds = i * 24 * 60 * 60;
 
     await Notifications.scheduleNotificationAsync({

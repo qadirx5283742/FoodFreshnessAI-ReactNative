@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!auth.currentUser) return;
     try {
       await deleteUser(auth.currentUser);
-      setUser(null); // User state clear karein
+      setUser(null);
     } catch (error: any) {
       console.error("Delete Account Error:", error.message);
       throw error;
@@ -74,7 +74,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, fullName: string, pass: string) => {
     setIsLoading(true);
     try {
-      // 1. Create Firebase User
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -82,7 +81,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       );
       const firebaseUser = userCredential.user;
 
-      // 2. Set Firebase Display Name
       await updateProfile(firebaseUser, { displayName: fullName });
 
       setUser({
@@ -102,7 +100,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!auth.currentUser) return;
 
     try {
-      // Update Firebase Profile
       await updateProfile(auth.currentUser, { displayName: fullName });
 
       setUser((prev) => (prev ? { ...prev, fullName } : null));
