@@ -164,7 +164,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            {t("AAP")}
+            {t("APP")}
           </Text>
           <View
             style={[styles.optionsCard, { backgroundColor: colors.surface }]}

@@ -118,6 +118,4 @@ class TfliteService {
   }
 }
 
-const float = (val: any) => parseFloat(String(val));
-
 export default TfliteService;

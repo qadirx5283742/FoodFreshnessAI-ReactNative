@@ -3,7 +3,7 @@ export default {
   ACCOUNT: "COMPTE",
   EDIT_PROFILE: "Modifier le profil",
   PERSONAL_INFO_BTN: "Informations personnelles",
-  AAP: "Application", // Keeping user's typo AAP for consistency if used, or fixing to APP if unused key. User used AAP in profile.tsx. I will stick to their key if possible but wait, en.ts has APP. I should probably use APP in code and map AAP key if that's what they wanted, or correct it. User put AAP in fr.ts and APP in en.ts. I'll respect existing but add new ones.
+  APP: "APPLICATION",
   SETTING_BTN: "Paramètres",
   ABOUT_APP_BTN: "À propos de l'application",
   LOGOUT: "Déconnexion",

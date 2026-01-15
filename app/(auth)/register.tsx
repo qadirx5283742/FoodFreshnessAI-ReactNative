@@ -138,7 +138,7 @@ export default function Register() {
                 >
                   {t("ALREADY_HAVE_ACCOUNT_TEXT")}
                 </Text>
-                <TouchableOpacity onPress={() => router.push("/login")}>
+                <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
                   <Text style={[styles.loginLink, { color: colors.primary }]}>
                     {t("LOGIN_LINK")}
                   </Text>

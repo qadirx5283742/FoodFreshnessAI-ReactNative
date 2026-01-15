@@ -29,6 +29,15 @@ function RootLayoutNav() {
   const navigationState = useRootNavigationState();
 
   useEffect(() => {
+    // Initialize database on app startup
+    DatabaseService.init().catch((error) => {
+      if (__DEV__) {
+        console.error('Failed to initialize database:', error);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     if (isLoading || !navigationState?.key) return;
 
     if (user) {
@@ -81,17 +90,20 @@ function RootLayoutNav() {
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <RootLayoutNav />
-          </ThemeProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <RootLayoutNav />
+            </ThemeProvider>
+          </AuthProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

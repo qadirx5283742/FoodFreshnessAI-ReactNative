@@ -69,15 +69,6 @@ class DatabaseService {
         );
       `);
 
-      try {
-        await this.db.execAsync(
-          "ALTER TABLE notifications ADD COLUMN scanId INTEGER;"
-        );
-        await this.db.execAsync(
-          "ALTER TABLE notifications ADD COLUMN imageUri TEXT;"
-        );
-      } catch (e) {}
-
       console.log("SQLite database initialized");
     } catch (error) {
       console.error("Database initialization error:", error);
