@@ -130,7 +130,3 @@ No license file detected. If you want this project to be open source, add a LICE
 ## Maintainer
 
 Repository owner: `qadirx5283742` — open issues or PRs on GitHub.
-
----
-
-If you'd like, I can also add a screenshot placeholder in `assets/screenshots/`, create a basic LICENSE (MIT), or add CI (GitHub Actions) to run TypeScript checks and linting on PRs. Let me know which you'd prefer and I'll add them.
