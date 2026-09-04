@@ -125,7 +125,7 @@ Note: Some native features (TFLite, certain notification/haptic behavior) may be
 
 ## License
 
-No license file detected. If you want this project to be open source, add a LICENSE (for example, MIT) to clarify terms.
+This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
 
 ## Maintainer
 
