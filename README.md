@@ -19,9 +19,7 @@ Detect food freshness from images on-device using a TensorFlow Lite model. This 
 
 ## Quick demo (Screenshots)
 
-![](./assets/screenshots/scan.png)
-
-Replace the image above with real screenshots in assets/screenshots/ when available.
+<img src="assets/WhatsApp Image 2026-09-05 at 2.40.21 AM.jpeg" alt="Profile Screen" width="400"/> <img src="assets/WhatsApp Image 2026-09-05 at 2.07.10 AM.jpeg" alt="Product Detail Screen" width="400"/>
 
 ## Stack
 
