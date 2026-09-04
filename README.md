@@ -1,50 +1,136 @@
-# Welcome to your Expo app 👋
+# FoodFreshnessAI (Expo / React Native)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Detect food freshness from images on-device using a TensorFlow Lite model. This Expo-managed React Native app provides a camera-first scanning flow, on-device inference (TFLite), local persistence of scans and images, and a polished mobile UX including notifications and haptics.
 
-## Get started
+## Features
 
-1. Install dependencies
+- On-device image analysis using a TensorFlow Lite model (services/TfliteService.ts)
+- Camera scanning workflow with live capture (app/scan.tsx)
+- Freshness scoring and friendly interpretation (Fresh / Spoiled)
+- Save scan results and images to local storage (services/DatabaseService.ts, services/StorageService.ts)
+- Product details and scan history (app/product-details.tsx)
+- User profile and settings (app/edit-profile.tsx, app/settings.tsx)
+- Help & Support screen (app/help-support.tsx)
+- Theme support and global ThemeContext (context/ThemeContext.tsx)
+- Authentication and user context (context/AuthContext.tsx)
+- Local notifications and haptic feedback (services/NotificationService.ts, services/HapticService.ts)
+- Robust UI components and error boundary (components/*)
+- Expo + EAS build configuration (app.json, eas.json)
 
-   ```bash
-   npm install
-   ```
+## Quick demo (Screenshots)
 
-2. Start the app
+![](./assets/screenshots/scan.png)
 
-   ```bash
-   npx expo start
-   ```
+Replace the image above with real screenshots in assets/screenshots/ when available.
 
-In the output, you'll find options to open the app in a
+## Stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Language: TypeScript (primary)
+- Framework: Expo (Expo-managed React Native)
+- Notable libraries: expo-camera, expo-router, TensorFlow Lite integration, Expo Notifications, EAS
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project structure (top-level)
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+app/                     # File-based screens (expo-router)
+components/              # Reusable UI components
+services/                # App services: Tflite, DB, Storage, Notifications, Haptics
+context/                 # React Context providers (Auth, Theme)
+constants/               # Colors, constants
+utils/                   # Helpers (logger, auth errors)
+app.json, eas.json       # Expo & EAS configuration
+package.json, tsconfig.json
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### How it fits together
+The Scan screen captures an image, which is analyzed by services/TfliteService.ts (on-device inference). Results are saved through services/DatabaseService.ts and services/StorageService.ts. UI screens (app/product-details.tsx, app/settings.tsx) read saved scans and display history. NotificationService and HapticService provide user feedback.
 
-## Learn more
+## Requirements
 
-To learn more about developing your project with Expo, look at the following resources:
+- Node.js (LTS)
+- npm or yarn
+- Expo CLI (optional: npm i -g expo-cli or use npx)
+- (Optional) EAS CLI for building standalone apps (npm i -g eas-cli)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Install
 
-## Join the community
+```bash
+git clone https://github.com/qadirx5283742/FoodFreshnessAI-ReactNative.git
+cd FoodFreshnessAI-ReactNative
+npm install
+# or
+# yarn
+```
 
-Join our community of developers creating universal apps.
+## Run (development)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx expo start
+# or
+npm run start
+```
+
+Open the project in Expo Go (limited features) or run on a simulator/emulator. Grant camera and storage permissions when prompted.
+
+## Build (standalone)
+
+This repository includes an `eas.json`. To build standalone apps with native module parity (recommended for TFLite behavior parity):
+
+1. Install EAS CLI and authenticate: `npm i -g eas-cli` then `eas login`
+2. Configure app signing and credentials as required by EAS
+3. Run a build:
+
+```bash
+eas build --platform android
+# or
+eas build --platform ios
+```
+
+Note: Some native features (TFLite, certain notification/haptic behavior) may behave differently in Expo Go vs a standalone build.
+
+## Configuration & Environment
+
+- Camera permissions are required for the Scan screen.
+- The TFLite model must be present in the app assets and the path must match what services/TfliteService.ts expects.
+- DatabaseService handles local persistence; no external backend is required for core features.
+
+## Notable files
+
+- `app/scan.tsx` — Camera and scanning workflow
+- `services/TfliteService.ts` — Model loading & inference
+- `services/DatabaseService.ts` — Persistence of scan records
+- `services/StorageService.ts` — Image saving & retrieval
+- `context/AuthContext.tsx` — Authentication state
+- `app/product-details.tsx` — Detail & history UI
+- `components/ErrorBoundary.tsx` — Global UI error handling
+
+## Troubleshooting
+
+- Camera permission denied: ensure the app (or Expo Go) has camera permission in OS settings.
+- TFLite inference errors: verify the model file exists in assets and TfliteService preprocessing matches model input.
+- Image save failures: ensure storage permissions are granted and file paths are valid for the target platform.
+
+## Development notes
+
+- The codebase is TypeScript-first — enable strict type checking in your editor for the best experience.
+- When changing the TFLite model, update input preprocessing and output interpretation in `services/TfliteService.ts`.
+- Use EAS builds for full native parity when testing features that depend on native modules.
+
+## Contributing
+
+1. Fork the repository and create a branch for your feature/bugfix.
+2. Follow the existing TypeScript & React Native style.
+3. Add tests where appropriate and update documentation.
+4. Open a pull request with a clear description and screenshots for UI changes.
+
+## License
+
+No license file detected. If you want this project to be open source, add a LICENSE (for example, MIT) to clarify terms.
+
+## Maintainer
+
+Repository owner: `qadirx5283742` — open issues or PRs on GitHub.
+
+---
+
+If you'd like, I can also add a screenshot placeholder in `assets/screenshots/`, create a basic LICENSE (MIT), or add CI (GitHub Actions) to run TypeScript checks and linting on PRs. Let me know which you'd prefer and I'll add them.
